@@ -279,7 +279,7 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
 
   <div id="result"></div>
 
-  <p class="foot-note">排盤使用開源曆法函式庫 lunar-javascript 與紫微斗數函式庫 iztro 計算；八字以節氣換月、晚子時（23 點後）日柱仍算當日，未做真太陽時校正。強弱與喜用神採簡化的加權估算，解讀文字依傳統命理通則整理，僅供參考與娛樂，重大決定請以實際情況與專業意見為準。</p>
+  <p class="foot-note">排盤使用開源曆法函式庫 lunar-javascript 與紫微斗數函式庫 iztro 計算；八字以節氣換月、晚子時（23 點後）日柱仍算當日，未做真太陽時校正。格局依《子平真詮》月令取用，強弱以通根計算，並參考調候與從格；仍屬規則化推算，解讀文字依傳統命理通則整理，僅供參考與娛樂，重大決定請以實際情況與專業意見為準。</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"></script>
@@ -390,6 +390,60 @@ const PALACE = {
 };
 const BRIGHT = { 廟: ['廟', 'up', '星曜力量最強，特質發揮得最好'], 旺: ['旺', 'up', '星曜有力，正面特質明顯'], 得: ['得', 'up', '星曜得地，表現穩定'], 利: ['利', 'flat', '星曜尚可，有發揮空間'], 平: ['平', 'flat', '星曜力量普通'], 不: ['不', 'down', '星曜力量偏弱，需後天努力'], 陷: ['陷', 'down', '星曜落陷，特質容易走向負面，宜謹慎'] };
 
+
+/* ---------- 子平 tables ---------- */
+// 人元司令（三命通會〈論人元司事〉）：交節後的日數 → 司令之神
+const SILING = { 寅: [['戊', 5], ['丙', 5], ['甲', 20]], 卯: [['甲', 7], ['乙', 23]], 辰: [['乙', 7], ['癸', 5], ['戊', 18]], 巳: [['戊', 7], ['庚', 5], ['丙', 18]],
+  午: [['丙', 7], ['丁', 23]], 未: [['丁', 7], ['乙', 5], ['己', 18]], 申: [['戊', 5], ['壬', 5], ['庚', 20]], 酉: [['庚', 7], ['辛', 23]],
+  戌: [['辛', 7], ['丁', 5], ['戊', 18]], 亥: [['戊', 5], ['甲', 5], ['壬', 20]], 子: [['壬', 7], ['癸', 23]], 丑: [['癸', 7], ['辛', 5], ['己', 18]] };
+function siling(zhi, days) { let d = 0; for (const [s, n] of SILING[zhi]) { d += n; if (days < d) return s; } return SILING[zhi][SILING[zhi].length - 1][0]; }
+const LU = { 甲: '寅', 乙: '卯', 丙: '巳', 丁: '午', 戊: '巳', 己: '午', 庚: '申', 辛: '酉', 壬: '亥', 癸: '子' };
+const YANGREN = { 甲: '卯', 丙: '午', 戊: '午', 庚: '酉', 壬: '子' };
+const YANG_SHENG = { 甲: '亥', 丙: '寅', 戊: '寅', 庚: '巳', 壬: '申' };
+const MU = { 木: '未', 火: '戌', 土: '辰', 金: '丑', 水: '辰' };
+const CHONG = {}; '子午丑未寅申卯酉辰戌巳亥'.match(/../g).forEach((p) => { CHONG[p[0]] = p[1]; CHONG[p[1]] = p[0]; });
+const LIUHE = {}; '子丑寅亥卯戌辰酉巳申午未'.match(/../g).forEach((p) => { LIUHE[p[0]] = p[1]; LIUHE[p[1]] = p[0]; });
+const SANHE = [['申子辰', '水', '癸'], ['亥卯未', '木', '乙'], ['寅午戌', '火', '丁'], ['巳酉丑', '金', '辛']];
+const GANHE = { 甲: '己', 己: '甲', 乙: '庚', 庚: '乙', 丙: '辛', 辛: '丙', 丁: '壬', 壬: '丁', 戊: '癸', 癸: '戊' };
+// 長生祿刃為重根，餘氣墓庫為輕根；陰長生力弱（子平真詮〈論陰陽生死〉〈論十干得時不旺失時不弱〉）
+function rootOf(stem, zhi, hide) {
+  const i = hide.findIndex((h) => STEM_EL[h] === STEM_EL[stem]);
+  if (i < 0) return 0;
+  if (i === 0 || YANG_SHENG[stem] === zhi) return 3;
+  return 1.5;
+}
+const GE_NAME = { 正官: '正官格', 七殺: '七殺格', 正財: '正財格', 偏財: '偏財格', 正印: '正印格', 偏印: '偏印格', 食神: '食神格', 傷官: '傷官格' };
+// 順用財官印食，逆用殺傷刃劫（子平真詮〈論用神〉及各格專篇）
+const GE_RULE = {
+  正官: (st) => (st ? { fav: ['財', '印'], unfav: ['食傷', '比劫'] } : { fav: ['印', '比劫'], unfav: ['食傷', '財'] }),
+  財: (st) => (st ? { fav: ['食傷', '官殺'], unfav: ['比劫', '印'] } : { fav: ['比劫', '印'], unfav: ['官殺', '食傷'] }),
+  印: (st) => (st ? { fav: ['食傷', '財'], unfav: ['官殺'] } : { fav: ['官殺', '比劫'], unfav: ['財'] }),
+  食神: (st) => (st ? { fav: ['財', '食傷'], unfav: ['印'] } : { fav: ['比劫'], unfav: ['財', '官殺'] }),
+  七殺: (st) => (st ? { fav: ['食傷'], unfav: ['財', '印'] } : { fav: ['印', '比劫'], unfav: ['財'] }),
+  傷官: (st) => (st ? { fav: ['財', '食傷'], unfav: ['印', '官殺'] } : { fav: ['印', '比劫'], unfav: ['財', '官殺'] }),
+};
+const GE_TEXT = {
+  正官格: ['「官喜透財以相生，生印以護官」，最忌傷官剋官與刑沖。', '守規矩、重名譽，做事有分寸，適合在制度中往上走。'],
+  七殺格: ['「七煞喜食神以制伏，忌財印以資扶」；身弱時則改以印化殺。', '有魄力、敢承擔壓力，越被激越能發揮。'],
+  正財格: ['「財喜食神以相生，生官以護財」，最怕比劫分奪。', '務實勤懇、重視穩定的收入與責任。'],
+  偏財格: ['「財喜食神以相生，生官以護財」，最怕比劫分奪。', '眼光靈活、善交際，對機會與投資敏感。'],
+  正印格: ['「印喜官煞以相生，劫財以護印」，最怕財星壞印。', '仁厚好學，有長輩緣，重視名聲與保障。'],
+  偏印格: ['「印喜官煞以相生，劫財以護印」，最怕財星壞印；身旺印重則喜食傷洩秀。', '思考獨特、悟性高，偏好冷門專業與獨處。'],
+  食神格: ['「食喜身旺以相生，生財以護食」，最怕偏印奪食。', '溫和有才藝，懂得享受生活，以專長取財。'],
+  傷官格: ['「傷官喜佩印以制伏，生財以化傷」，忌見官星；金水傷官則喜見官以調候。', '聰明有創意、口才好，不喜歡被框住。'],
+  陽刃格: ['「陽刃喜官煞以制伏，忌官煞之俱無」。', '剛烈果斷、行動力強，需要規範來發揮。'],
+  建祿格: ['月令為祿，本身不能為用，「透官而逢財印，透財而逢食傷」方成格。', '自立自強，多靠自己打拼起家。'],
+  月劫格: ['「月劫喜透官以制伏，用財而透食以化劫」。', '重朋友、好競爭，適合與人合作開創。'],
+};
+const CAI_TEXT = {
+  'strong-strong': '身強財旺，最有發財條件；走到食傷、財星的大運流年時容易發大財。',
+  'strong-weak': '身強財弱，有能力承擔但財源不多；走到食傷、財星的大運流年可發中財。',
+  'weak-strong': '身弱財旺，機會多但力不從心；走到印星、比劫的大運流年把身體撐起來時，反而能發大財。',
+  'weak-weak': '身弱財弱，宜靠專業穩定累積；走到印星、比劫的大運流年可發中財。',
+  'strong-none': '四柱不見財星但身強，遇到財星的大運流年會有錢進帳，只是財來得快去得也快，要懂得守。',
+  'weak-none': '四柱不見財星，身又偏弱，不容易靠投機發財，適合以專業或技藝謀生。',
+};
+
 /* ---------- compute ---------- */
 function computeBazi(solar, gender) {
   const lunar = solar.getLunar();
@@ -401,46 +455,143 @@ function computeBazi(solar, gender) {
     { key: '時柱', gan: ec.getTimeGan(), zhi: ec.getTimeZhi(), hide: ec.getTimeHideGan(), ny: ec.getTimeNaYin(), ds: ec.getTimeDiShi() },
   ];
   const dm = cols[2].gan;
-  // weighted five-element score: stems 1, hidden stems 1 / .5 / .3, month branch doubled
+  const dmEl = STEM_EL[dm];
+  // five-element distribution for the chart display: stems 1, hidden stems 1 / .5 / .3, month branch doubled
   const score = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   const raw = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   const gods = {};
   cols.forEach((c, i) => {
     score[STEM_EL[c.gan]] += 1; raw[STEM_EL[c.gan]]++; raw[BRANCH_EL[c.zhi]]++;
-    if (i !== 2) gods[tenGod(dm, c.gan)] = (gods[tenGod(dm, c.gan)] || 0) + 1;
+    // 干主天動而有為，支主地靜以待用：透干的十神權重較高
+    if (i !== 2) gods[tenGod(dm, c.gan)] = (gods[tenGod(dm, c.gan)] || 0) + 1.5;
     c.hide.forEach((h, j) => {
       score[STEM_EL[h]] += [1, 0.5, 0.3][j] * (i === 1 ? 2 : 1);
-      gods[tenGod(dm, h)] = (gods[tenGod(dm, h)] || 0) + (j === 0 ? 1 : 0.5);
+      gods[tenGod(dm, h)] = (gods[tenGod(dm, h)] || 0) + (j === 0 ? 1 : 0.5) * (i === 1 ? 2 : 1);
     });
   });
-  const dmEl = STEM_EL[dm];
   const total = EL.reduce((s, e) => s + score[e], 0);
-  const selfScore = score[dmEl] + score[genBy(dmEl)];
-  const ratio = selfScore / total;
+  const groupEl = (g) => ({ 比劫: dmEl, 食傷: gen(dmEl), 財: ctrl(dmEl), 官殺: ctrlBy(dmEl), 印: genBy(dmEl) }[g]);
+  const elGroup = (e) => ['比劫', '食傷', '財', '官殺', '印'].find((g) => groupEl(g) === e);
+
+  // 日主強弱：以通根論（子平真詮〈論十干得時不旺失時不弱〉、滴天髓〈衰旺〉）
+  const gs = { 比劫: 0, 食傷: 0, 財: 0, 官殺: 0, 印: 0 };
+  let dmRoot = 0; const roots = [];
+  cols.forEach((c, i) => {
+    if (i !== 2) gs[GOD_GROUP[tenGod(dm, c.gan)]] += GOD_GROUP[tenGod(dm, c.gan)] === '印' ? 0.8 : 1;
+    const mult = i === 1 ? 2 : 1;
+    const r = rootOf(dm, c.zhi, c.hide);
+    if (r) { dmRoot += r * mult; roots.push({ pillar: c.key, zhi: c.zhi, kind: r === 3 ? '重根' : '輕根' }); }
+    c.hide.forEach((h, j) => {
+      const g = GOD_GROUP[tenGod(dm, h)];
+      if (g === '比劫') return; // counted as roots above
+      gs[g] += (j === 0 ? 1.5 : 0.6) * mult;
+    });
+  });
+  gs.比劫 += dmRoot;
+  const self = gs.比劫 + gs.印, opp = gs.食傷 + gs.財 + gs.官殺;
+  const ratio = self / (self + opp);
   const deLing = [dmEl, genBy(dmEl)].includes(BRANCH_EL[cols[1].zhi]);
-  let strength, fav, unfav;
-  if (ratio >= 0.55) { strength = '身強'; fav = [gen(dmEl), ctrl(dmEl), ctrlBy(dmEl)]; unfav = [genBy(dmEl), dmEl]; }
-  else if (ratio <= 0.42) { strength = '身弱'; fav = [genBy(dmEl), dmEl]; unfav = [ctrlBy(dmEl), ctrl(dmEl), gen(dmEl)]; }
-  else if (ratio >= 0.5) { strength = '中和偏強'; fav = [gen(dmEl), ctrl(dmEl)]; unfav = [genBy(dmEl)]; }
-  else { strength = '中和偏弱'; fav = [genBy(dmEl), dmEl]; unfav = [ctrlBy(dmEl)]; }
-  // order favourable by how much the chart lacks them
-  fav.sort((a, b) => score[a] - score[b]);
+  const strong = ratio >= 0.5;
+  const strength = ratio >= 0.6 ? '身強' : ratio >= 0.5 ? '中和偏強' : ratio >= 0.4 ? '中和偏弱' : '身弱';
+
+  // 人元司令（三命通會〈論人元司事〉）
+  const jie = lunar.getPrevJie();
+  const days = Math.max(0, solar.subtractMinute(jie.getSolar()) / 1440);
+  const mz = cols[1].zhi, mh = cols[1].hide;
+  const sl = siling(mz, days);
+
+  // 定格：八字用神，專求月令（子平真詮〈論用神〉〈論用神變化〉〈論雜氣如何取用〉）
+  const shown = [cols[0].gan, cols[1].gan, cols[3].gan];
+  const brs = cols.map((c) => c.zhi);
+  const sanhe = SANHE.find(([trio]) => trio.includes(mz) && [...trio].every((b) => brs.includes(b)));
+  const nonSelf = (h) => GOD_GROUP[tenGod(dm, h)] !== '比劫';
+  const tou = mh.filter((h) => shown.includes(h) && nonSelf(h));
+  let geStem, geHow;
+  if (nonSelf(mh[0]) && shown.includes(mh[0])) { geStem = mh[0]; geHow = `月令本氣${mh[0]}透出天干`; }
+  else if (tou.length) { geStem = tou.includes(sl) ? sl : tou[0]; geHow = `月令藏干${geStem}透出天干，取其透者為用`; }
+  else if (sanhe && nonSelf(sanhe[2])) { geStem = sanhe[2]; geHow = `地支${sanhe[0]}三合${sanhe[1]}局，月令隨局變化`; }
+  else if (nonSelf(mh[0])) { geStem = mh[0]; geHow = `月令本氣${mh[0]}${sl === mh[0] ? '當令司權' : '為主'}`; }
+  let ge, geGod = null, aux = null;
+  if (geStem) { geGod = tenGod(dm, geStem); ge = GE_NAME[geGod]; }
+  else {
+    ge = YANGREN[dm] === mz ? '陽刃格' : LU[dm] === mz ? '建祿格' : '月劫格';
+    geHow = `月令${mz}為日主${ge === '陽刃格' ? '羊刃' : ge === '建祿格' ? '祿地' : '比劫'}，本身不能為用，另取四柱財官`;
+    aux = ['官殺', '財', '食傷'].find((g) => shown.some((s) => GOD_GROUP[tenGod(dm, s)] === g)) || null;
+  }
+
+  // 特殊格局：從格、專旺（滴天髓〈衰旺〉〈從象〉）
+  const selfStems = shown.filter((s) => ['比劫', '印'].includes(GOD_GROUP[tenGod(dm, s)])).length;
+  const hasGuan = shown.some((s) => GOD_GROUP[tenGod(dm, s)] === '官殺') || cols.some((c) => GOD_GROUP[tenGod(dm, c.hide[0])] === '官殺');
+  let special = null;
+  if (dmRoot === 0 && selfStems === 0 && ratio < 0.2) {
+    const dom = ['食傷', '財', '官殺'].sort((a, b) => gs[b] - gs[a])[0];
+    special = { name: { 食傷: '從兒格', 財: '從財格', 官殺: '從殺格' }[dom], fav: [dom, dom === '官殺' ? '財' : dom === '財' ? '食傷' : '財'], unfav: ['比劫', '印'] };
+  } else if (ratio > 0.85 && !hasGuan) {
+    special = { name: { 木: '曲直格', 火: '炎上格', 土: '稼穡格', 金: '從革格', 水: '潤下格' }[dmEl] + '（專旺）', fav: ['比劫', '印', '食傷'], unfav: ['官殺', '財'] };
+  }
+
+  let rule;
+  if (special) rule = { fav: special.fav, unfav: special.unfav };
+  else if (geGod) rule = GE_RULE[GOD_GROUP[geGod] === '財' ? '財' : GOD_GROUP[geGod] === '印' ? '印' : geGod](strong);
+  else rule = ge === '陽刃格' ? { fav: ['官殺', '財'], unfav: ['比劫', '印'] } : { fav: aux ? [aux, ...['官殺', '財', '食傷'].filter((g) => g !== aux)] : ['官殺', '財', '食傷'], unfav: ['比劫', '印'] };
+  let fav = [...new Set(rule.fav.map(groupEl))];
+  let unfav = [...new Set(rule.unfav.map(groupEl))].filter((e) => !fav.includes(e));
+
+  // 調候（子平真詮〈論用神配氣候得失〉、滴天髓〈寒暖〉〈燥濕〉）
+  let hou = null;
+  const visible = (e) => shown.concat(dm).some((s) => STEM_EL[s] === e) || brs.some((b) => BRANCH_EL[b] === e && !'辰戌丑未'.includes(b));
+  if (!special && '亥子丑'.includes(mz) && !visible('火')) hou = '火';
+  if (!special && '巳午未'.includes(mz) && !visible('水')) hou = '水';
+  // 金水傷官喜見官（子平真詮〈論用神配氣候得失〉）
+  if (!special && (dm === '庚' || dm === '辛') && '亥子'.includes(mz) && ['傷官', '食神'].includes(geGod)) hou = hou || '火';
+  if (hou) { fav = [hou, ...fav.filter((e) => e !== hou)]; unfav = unfav.filter((e) => e !== hou); }
+
+  // 合沖會（子平真詮〈論十干配合性情〉〈論刑沖會合解法〉）
+  const rel = []; const P = ['年', '月', '日', '時'];
+  for (let i = 0; i < 3; i++) if (GANHE[cols[i].gan] === cols[i + 1].gan) rel.push({ t: '合', s: `${P[i]}${P[i + 1]}干 ${cols[i].gan}${cols[i + 1].gan}合` });
+  for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) {
+    const a = brs[i], b = brs[j];
+    if (CHONG[a] === b) rel.push({ t: '沖', s: `${P[i]}${P[j]}支 ${a}${b}沖`, month: i === 1 || j === 1 });
+    if (j === i + 1 && LIUHE[a] === b) rel.push({ t: '合', s: `${P[i]}${P[j]}支 ${a}${b}六合` });
+  }
+  SANHE.forEach(([trio, e]) => { if ([...trio].every((x) => brs.includes(x))) rel.push({ t: '會', s: `地支${trio}三合${e}局` }); });
+  const notes = [];
+  if (geStem) {
+    const pos = shown.indexOf(geStem); const idx = [0, 1, 3][pos];
+    if (pos >= 0) [idx - 1, idx + 1].forEach((k) => { if (k >= 0 && k <= 3 && k !== 2 && GANHE[geStem] === cols[k].gan) notes.push(`格神${geStem}被${P[k]}干${cols[k].gan}合住，用神力量減弱。`); });
+  }
+  if (rel.some((r) => r.month)) notes.push(`月令${mz}逢沖，格局較不穩定，${CHONG[mz]}年、${CHONG[mz]}運尤需留意。`);
+
   const missing = EL.filter((e) => raw[e] === 0);
   const groups = { 比劫: 0, 食傷: 0, 財: 0, 官殺: 0, 印: 0 };
   Object.entries(gods).forEach(([g, n]) => { groups[GOD_GROUP[g]] += n; });
   const topGroup = Object.entries(groups).sort((a, b) => b[1] - a[1])[0][0];
 
+  // 財：日元能量與財星能量；財庫為財星五行之墓；祿神
+  const caiShare = gs.財 / (self + opp);
+  const caiLevel = gs.財 === 0 ? 'none' : caiShare >= 0.22 ? 'strong' : 'weak';
+  const caiEl = groupEl('財');
+  const ku = MU[caiEl];
+  const kuAt = cols.filter((c) => c.zhi === ku).map((c) => c.key);
+  const luAt = cols.filter((c) => c.zhi === LU[dm]).map((c) => c.key);
+
   const yun = ec.getYun(gender === '男' ? 1 : 0);
   const dayun = yun.getDaYun(10).filter((d) => d.getGanZhi()).map((d) => {
     const gz = d.getGanZhi();
-    return { gz, startAge: d.getStartAge(), endAge: d.getEndAge(), startYear: d.getStartYear(), endYear: d.getEndYear(), god: tenGod(dm, gz[0]), rate: rateEls([STEM_EL[gz[0]], BRANCH_EL[gz[1]]], fav, unfav) };
+    return { gz, startAge: d.getStartAge(), endAge: d.getEndAge(), startYear: d.getStartYear(), endYear: d.getEndYear(), god: tenGod(dm, gz[0]), rate: rateGZ(gz, fav, unfav, 'yun', mz),
+      cai: (strong ? ['食傷', '財'] : ['印', '比劫']).some((g) => [STEM_EL[gz[0]], BRANCH_EL[gz[1]]].includes(groupEl(g))) };
   });
-  return { lunar, ec, cols, dm, dmEl, score, raw, total, ratio, deLing, strength, fav, unfav, missing, gods, groups, topGroup, dayun,
+  return { lunar, ec, cols, dm, dmEl, score, raw, total, ratio, deLing, strength, strong, fav, unfav, missing, gods, groups, topGroup, dayun,
+    gs, dmRoot, roots, days, sl, mz, ge, geGod, geStem, geHow, aux, special, hou, rel, notes, groupEl, elGroup, caiLevel, caiEl, ku, kuAt, luAt,
     yunStart: { y: yun.getStartYear(), m: yun.getStartMonth(), d: yun.getStartDay() } };
 }
-function rateEls(els, fav, unfav) {
-  let s = 0; els.forEach((e, i) => { const w = i === 0 ? 1 : 1.2; if (fav.includes(e)) s += w; if (unfav.includes(e)) s -= w; });
-  return s >= 1 ? 'up' : s <= -1 ? 'down' : 'flat';
+// 大運重地支，流年重天干（滴天髓〈歲運〉）；運支沖月令另扣分（子平真詮〈論行運〉）
+function rateGZ(gz, fav, unfav, kind, mz) {
+  const w = kind === 'yun' ? [0.8, 1.2] : [1.2, 0.8];
+  let s = 0;
+  [STEM_EL[gz[0]], BRANCH_EL[gz[1]]].forEach((e, i) => { if (fav.includes(e)) s += w[i]; if (unfav.includes(e)) s -= w[i]; });
+  if (CHONG[gz[1]] === mz) s -= 0.8;
+  return s >= 0.8 ? 'up' : s <= -1.2 ? 'down' : 'flat';
 }
 const RATE_TXT = { up: '順', flat: '平', down: '需留意' };
 function yearGZ(y) { return STEMS[((y - 4) % 10 + 10) % 10] + BRANCHES[((y - 4) % 12 + 12) % 12]; }
@@ -510,13 +661,13 @@ function renderSummary() {
   const now = new Date().getFullYear();
   const curYun = bz.dayun.find((d) => now >= d.startYear && now <= d.endYear);
   const yGZ = yearGZ(now);
-  const yRate = rateEls([STEM_EL[yGZ[0]], BRANCH_EL[yGZ[1]]], bz.fav, bz.unfav);
+  const yRate = rateGZ(yGZ, bz.fav, bz.unfav, 'year', bz.mz);
   const fiveClassEl = (a.fiveElementsClass || '').charAt(0);
 
   // personality
   const mingNames = mb.stars.map((s) => s.name).join('、') || '無主星';
   const mingTraits = mb.stars.map((s) => STAR[s.name] && STAR[s.name].trait).filter(Boolean);
-  const p1 = `八字日主為 <b>${bz.dm}${dmt[0]}</b>，像${dmt[1]}：${dmt[2]}紫微命宮${mb.borrowed ? '無主星，借對宮' : '坐'} <b>${mingNames}</b>，${mingTraits[0] || ''}${mingTraits[1] ? '同時' + mingTraits[1] : ''}兩盤合看，${sameVibe(bz.dmEl, mb.stars)}需要留意的是：${dmt[3]}`;
+  const p1 = `八字日主為 <b>${bz.dm}${dmt[0]}</b>，像${dmt[1]}：${dmt[2]}紫微命宮${mb.borrowed ? '無主星，借對宮' : '坐'} <b>${mingNames}</b>，${mingTraits[0] || ''}${mingTraits[1] ? '同時' + mingTraits[1] : ''}八字為<b>${geLabel(bz)}</b>，${geTrait(bz)}兩盤合看，${sameVibe(bz.dmEl, mb.stars)}需要留意的是：${dmt[3]}`;
 
   // career
   const guan = palaceByName('官祿'); const gb = borrowed(guan);
@@ -524,14 +675,14 @@ function renderSummary() {
 
   // wealth
   const cai = palaceByName('財帛'); const cb = borrowed(cai);
-  const caiCount = bz.groups['財'];
-  const p3 = `財帛宮${cb.borrowed ? '借對宮' : ''}為 <b>${cb.stars.map((s) => s.name).join('、') || '空宮'}</b>，${cb.stars.map((s) => STAR[s.name] && STAR[s.name].cai).filter(Boolean).join('')}八字財星${caiCount >= 2.5 ? '明顯' : caiCount >= 1 ? '適中' : '不顯'}，${wealthNote(bz, caiCount)}`;
+  const caiYun = bz.dayun.filter((d) => d.cai && d.rate !== 'down' && d.endYear >= now).slice(0, 3).map((d) => `${d.gz}（${d.startYear}–${d.endYear}）`);
+  const p3 = `財帛宮${cb.borrowed ? '借對宮' : ''}為 <b>${cb.stars.map((s) => s.name).join('、') || '空宮'}</b>，${cb.stars.map((s) => STAR[s.name] && STAR[s.name].cai).filter(Boolean).join('')}八字方面，${CAI_TEXT[(bz.strong ? 'strong' : 'weak') + '-' + bz.caiLevel]}${caiYun.length ? '往後較有利求財的大運：' + caiYun.join('、') + '。' : ''}${caiExtra(bz)}`;
 
   // love
   const fq = palaceByName('夫妻'); const fb = borrowed(fq);
   const spouseGod = state.input.gender === '男' ? '財' : '官殺';
   const dayZhiGod = tenGod(bz.dm, bz.cols[2].hide[0]);
-  const p4 = `夫妻宮${fb.borrowed ? '借對宮' : ''}為 <b>${fb.stars.map((s) => s.name).join('、') || '空宮'}</b>，${fb.stars.map((s) => STAR[s.name] && STAR[s.name].fuqi).filter(Boolean).join('')}八字日支（配偶宮）藏${bz.cols[2].hide[0]}，為<b>${dayZhiGod}</b>，代表伴侶帶有「${GOD_TEXT[dayZhiGod].split('，')[0].split('；')[0]}」的特質；${state.input.gender === '男' ? '男命以財星' : '女命以官殺'}為配偶星，在命局中${bz.groups[spouseGod] >= 2 ? '有力，感情機會不少，重點在選擇與經營' : bz.groups[spouseGod] >= 1 ? '適中，緣分來時要主動把握' : '較弱，感情宜晚或要多花心思經營'}。`;
+  const p4 = `夫妻宮${fb.borrowed ? '借對宮' : ''}為 <b>${fb.stars.map((s) => s.name).join('、') || '空宮'}</b>，${fb.stars.map((s) => STAR[s.name] && STAR[s.name].fuqi).filter(Boolean).join('')}八字日支（配偶宮）藏${bz.cols[2].hide[0]}，為<b>${dayZhiGod}</b>，代表伴侶帶有「${GOD_TEXT[dayZhiGod].split('，')[0].split('；')[0]}」的特質；${state.input.gender === '男' ? '男命以財星' : '女命以官殺'}為配偶星，在命局中${bz.groups[spouseGod] >= 2 ? '有力' : bz.groups[spouseGod] >= 1 ? '適中' : '較弱'}，${bz.fav.includes(bz.groupEl(spouseGod)) ? '而且是喜用神，伴侶對你多有助力' : bz.unfav.includes(bz.groupEl(spouseGod)) ? '但屬於忌神，感情需要較多磨合與經營' : '對命局影響不大，緣分來時要主動把握'}。`;
 
   // luck now
   let p5 = '';
@@ -552,7 +703,7 @@ function renderSummary() {
   return `
   <div class="facts">
     <div class="fact"><span class="label">日主</span><span class="v">${bz.dm}<span class="el-${bz.dmEl}">${bz.dmEl}</span></span><span class="s">${dmt[0]} · ${dmt[1]}</span></div>
-    <div class="fact"><span class="label">強弱</span><span class="v">${bz.strength}</span><span class="s">同黨約 ${Math.round(bz.ratio * 100)}%${bz.deLing ? '，得月令' : '，失月令'}</span></div>
+    <div class="fact"><span class="label">格局</span><span class="v">${geLabel(bz)}</span><span class="s">${bz.strength} · ${bz.mz}月${bz.sl}司令</span></div>
     <div class="fact"><span class="label">喜用五行</span><span class="v">${bz.fav.map(elSpan).join(' ')}</span><span class="s">忌 ${bz.unfav.map(elSpan).join(' ')}</span></div>
     <div class="fact"><span class="label">紫微命宮</span><span class="v">${mb.stars.map((s) => s.name).join(' ') || '無主星'}</span><span class="s">${mb.borrowed ? '空宮借對宮 · ' : ''}${ming.heavenlyStem}${ming.earthlyBranch}宮</span></div>
     <div class="fact"><span class="label">五行局</span><span class="v">${a.fiveElementsClass}</span><span class="s">命主 ${a.soul} · 身主 ${a.body}</span></div>
@@ -583,12 +734,16 @@ function sameVibe(dmEl, stars) {
   if (els.some((e) => gen(e) === dmEl || gen(dmEl) === e)) return '日主與命宮主星五行相生，性格中的不同面向能互相支援。';
   return '日主與命宮主星五行相剋，內心想法與外在表現可能有落差，給人的第一印象未必是真正的你。';
 }
-function wealthNote(bz, n) {
-  const strong = bz.strength.startsWith('身強') || bz.strength === '中和偏強';
-  if (n >= 1 && strong) return '身強能任財，有能力把機會變成實際收入，可適度投資。';
-  if (n >= 2.5 && !strong) return '財多身弱，機會雖多但容易力不從心，宜與人合作或靠專業穩定累積，避免高槓桿。';
-  if (n < 1) return '賺錢動力多半來自興趣或成就感，宜以專業累積價值，再帶動收入。';
-  return '財運平穩，量入為出、穩定儲蓄最有利。';
+function geLabel(bz) { return bz.special ? bz.special.name : bz.ge; }
+function geTrait(bz) {
+  if (bz.special) return bz.special.name.startsWith('從') ? '日主無根，順從命局中最旺的力量，懂得借勢而為。' : '一種五行獨旺，個性專注鮮明，適合順勢發揮專長。';
+  return GE_TEXT[bz.ge][1];
+}
+function caiExtra(bz) {
+  let t = `財庫在${bz.ku}（${bz.caiEl}之墓），${bz.kuAt.length ? '命中' + bz.kuAt.join('、') + '見之，有聚財之所' : '命中不見'}；`;
+  const LU_TXT = { 年柱: '祖上或父母有底子，少年家境不錯', 月柱: '青年時期就有經濟能力', 日柱: '中年不缺錢財', 時柱: '晚年富裕' };
+  t += bz.luAt.length ? `祿神${LU[bz.dm]}在${bz.luAt.join('、')}，${bz.luAt.map((k) => LU_TXT[k]).join('；')}。` : `四柱不見祿神${LU[bz.dm]}。`;
+  return t;
 }
 
 function renderBazi() {
@@ -617,7 +772,7 @@ function renderBazi() {
       <span class="age">${d.startYear}</span></div>`).join('');
   const years = []; for (let y = now - 1; y <= now + 8; y++) years.push(y);
   const birthY = state.input.solar.getYear();
-  const ln = years.map((y) => { const g = yearGZ(y); const r = rateEls([STEM_EL[g[0]], BRANCH_EL[g[1]]], bz.fav, bz.unfav);
+  const ln = years.map((y) => { const g = yearGZ(y); const r = rateGZ(g, bz.fav, bz.unfav, 'year', bz.mz);
     return `<div class="step ${y === now ? 'now' : ''}"><span class="age">${y} · ${y - birthY + 1}歲</span><span class="gz"><span class="el-${STEM_EL[g[0]]}">${g[0]}</span><span class="el-${BRANCH_EL[g[1]]}">${g[1]}</span></span><span class="small">${tenGod(bz.dm, g[0])}</span><span><span class="pill ${r}">${RATE_TXT[r]}</span></span></div>`; }).join('');
   const dmt = DM_TEXT[bz.dm];
   return `
@@ -626,14 +781,26 @@ function renderBazi() {
   <div class="grid2">
     <div class="card"><h3>五行分布<small>加權估算，月令加倍</small></h3><div class="bars">${bars}</div>
       <p class="hint" style="margin-top:10px">${bz.missing.length ? '天干地支中缺' + bz.missing.map(elSpan).join('、') + '（藏干不計）。' : '天干地支五行俱全。'}</p></div>
-    <div class="card"><h3>日主強弱與喜用</h3><div class="prose">
-      <p>日主 <b>${bz.dm}${dmt[0]}</b>，生於${bz.cols[1].zhi}月，${bz.deLing ? '得月令之助' : '不得月令'}；生扶日主的力量約佔 ${Math.round(bz.ratio * 100)}%，判斷為 <b>${bz.strength}</b>。</p>
-      <p>${bz.strength.includes('強') ? '日主力量充足，宜用食傷洩秀、財星耗力、官殺制衡，讓能量有出口。' : '日主力量不足，宜用印星生扶、比劫幫身，先把自己的根基站穩。'}喜用五行：${bz.fav.map(elSpan).join('、')}；忌：${bz.unfav.map(elSpan).join('、')}。</p>
+    <div class="card"><h3>日主強弱<small>以通根論</small></h3><div class="prose">
+      <p>日主 <b>${bz.dm}${dmt[0]}</b>，生於${bz.mz}月，${bz.deLing ? '得月令之助' : '不得月令'}。${bz.roots.length ? '在地支的根：' + bz.roots.map((r) => `${r.pillar}${r.zhi}（${r.kind}）`).join('、') + '。' : '四柱地支沒有日主的根。'}</p>
+      <p>生扶日主的力量約佔 ${Math.round(bz.ratio * 100)}%，判斷為 <b>${bz.strength}</b>。</p>
+      <p class="small mutedtxt">古籍說「十干不論月令休囚，只要四柱有根，便能受財官食神而當傷官七煞」。長生、祿、刃為重根，餘氣、墓庫為輕根，天干比劫的幫助不如地支一個根。</p>
     </div></div>
   </div>
-  <div class="card"><h3>十神解析<small>天干計 1，藏干主氣計 1、餘氣計 0.5</small></h3><ul class="list">${godRows}</ul></div>
+  <div class="card"><h3>格局與喜用<small>八字用神，專求月令</small></h3><div class="prose">
+    <p>生於交節後第 ${Math.floor(bz.days) + 1} 天，月令${bz.mz}中由 <b>${bz.sl}</b> 司令。${bz.special ? `日主${bz.special.name.startsWith('從') ? '無根而四柱幾乎不見生扶' : '一行獨旺且不見官殺'}，成 <b>${bz.special.name}</b>，屬於特殊格局，喜忌要順著命局的氣勢走，與一般格局相反。` : `${bz.geHow}，定為 <b>${bz.ge}</b>。`}</p>
+    ${bz.special ? '' : `<p>${GE_TEXT[bz.ge][0]}${bz.aux ? `四柱透出${bz.aux}，以此為用。` : ''}你的日主${bz.strong ? '有力' : '偏弱'}，取用如下。</p>`}
+    <p>喜用：${bz.fav.map((e) => `${elSpan(e)}（${bz.elGroup(e)}）`).join('、')}；忌：${bz.unfav.length ? bz.unfav.map((e) => `${elSpan(e)}（${bz.elGroup(e)}）`).join('、') : '無明顯忌神'}。</p>
+    ${bz.hou ? `<p>生於${'亥子丑'.includes(bz.mz) ? '冬季，命局偏寒' : '夏季，命局偏燥'}，${bz.hou === '火' ? '需要火來暖局' : '需要水來潤局'}，所以把${elSpan(bz.hou)}列為第一喜用（調候）。</p>` : ''}
+    ${bz.notes.map((n) => `<p>${n}</p>`).join('')}
+  </div></div>
+  <div class="card"><h3>合沖會<small>天干五合、地支六合六沖三合</small></h3>
+    ${bz.rel.length ? `<ul class="list">${bz.rel.map((r) => `<li><b>${r.t}</b>　${r.s}</li>`).join('')}</ul>` : '<p class="mutedtxt">四柱之間沒有明顯的合、沖、會。</p>'}
+    <p class="hint" style="margin-top:8px">合可以解沖，也可能把喜用神合走；沖到月令最影響格局。</p>
+  </div>
+  <div class="card"><h3>十神解析<small>透干計 1.5，藏干主氣計 1、餘氣計 0.5，月令加倍</small></h3><ul class="list">${godRows}</ul></div>
   <div class="card"><h3>大運<small>${bz.yunStart.y}年${bz.yunStart.m}個月${bz.yunStart.d}天後起運，每十年一換</small></h3><div class="yun">${yun}</div></div>
-  <div class="card"><h3>流年<small>依喜忌五行評估</small></h3><div class="yun">${ln}</div></div>`;
+  <div class="card"><h3>流年<small>依格局喜忌評估，流年重天干</small></h3><div class="yun">${ln}</div></div>`;
 }
 
 const POS = [[4, 1], [3, 1], [2, 1], [1, 1], [1, 2], [1, 3], [1, 4], [2, 4], [3, 4], [4, 4], [4, 3], [4, 2]];

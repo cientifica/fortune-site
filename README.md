@@ -6,4 +6,4 @@
 - **八字**：四柱、藏干、十神、納音、十二運、五行分布、強弱喜用、大運流年
 - **紫微斗數**：十二宮方盤、生年四化、大限流年、點選宮位看解讀與三方四正
 
-單一靜態檔案 `index.html`，手機與電腦皆可使用（手機上紫微命盤會縮成精簡方盤，點宮位看詳解），可直接用 GitHub Pages 等靜態主機發布。排盤使用 [lunar-javascript](https://github.com/6tail/lunar-javascript) 與 [iztro](https://github.com/SylarLong/iztro)（由 jsDelivr 載入）。強弱與喜用神為簡化估算，未做真太陽時校正，結果僅供參考與娛樂。
+單一靜態檔案 `index.html`，手機與電腦皆可使用（手機上紫微命盤會縮成精簡方盤，點宮位看詳解），可直接用 GitHub Pages 等靜態主機發布。排盤使用 [lunar-javascript](https://github.com/6tail/lunar-javascript) 與 [iztro](https://github.com/SylarLong/iztro)（由 jsDelivr 載入）。格局依《子平真詮》以月令取用，強弱以通根計算，並參考調候與從格，未做真太陽時校正，結果僅供參考與娛樂。
