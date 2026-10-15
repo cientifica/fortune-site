@@ -1,3 +1,15 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="八字四柱 × 紫微斗數合參的免費線上排盤。輸入生日時辰，即時看命盤與個性、事業、財運、感情解讀。">
+<meta name="theme-color" content="#F5F7FB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1322" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="算命PASS">
+<meta property="og:description" content="八字 × 紫微斗數，兩套命盤合參解讀。">
+<meta property="og:type" content="website">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
 <title>算命PASS</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -131,6 +143,8 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
 
 /* ziwei board */
 .board-wrap { overflow-x: auto; }
+.zw-split { display: grid; gap: 22px; }
+@media (min-width: 980px) { .zw-split { grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr); align-items: start; } .zw-split #palaceDetail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 56px); max-height: calc(100vh - 72px); overflow-y: auto; } .zw-split .board { min-width: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .board { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); grid-template-rows: repeat(4, minmax(150px, auto)); gap: 0; border: 2px solid var(--ink); min-width: 580px; background: var(--panel); }
 .pal { border: 1px solid var(--line); padding: 6px 7px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; text-align: left; background: var(--panel); position: relative; min-width: 0; }
 .pal:hover { background: var(--cobalt-soft); }
@@ -143,6 +157,7 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
 .mut-祿 { background: var(--good); } .mut-權 { background: var(--cobalt); } .mut-科 { background: var(--warn); } .mut-忌 { background: var(--seal); }
 .minors { font-size: 13px; color: var(--ink); display: flex; flex-wrap: wrap; gap: 0 6px; }
 .minors .bad { color: var(--muted); }
+.empty { font-size: 11px; color: var(--muted); }
 .adj { font-size: 11px; color: var(--muted); line-height: 1.4; }
 .pal .foot { margin-top: auto; display: flex; justify-content: space-between; align-items: end; gap: 4px; padding-top: 4px; }
 .pal .pname { font-family: var(--f-display); font-size: 16px; font-weight: 700; color: var(--cobalt); }
@@ -164,8 +179,50 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
 .list li::before { content: ""; position: absolute; left: 0; top: .75em; width: 6px; height: 6px; border-radius: 50%; background: var(--cobalt); }
 .foot-note { margin-top: 36px; font-size: 13px; color: var(--muted); max-width: 72ch; }
 
-@media (max-width: 520px) {
-  .glyph { font-size: 32px; }
+@media (max-width: 640px) {
+  body { font-size: 14.5px; }
+  .wrap { padding-block: 18px 48px; }
+  .card { padding: 14px 12px; }
+  .form { padding: 14px 12px; }
+  .row { gap: 12px; }
+  .row > .field, .row > .row { flex: 1 1 auto; }
+  #nameIn, #dateIn, #timeIn { width: 100%; }
+  #solarBox, #solarBox .field { flex: 1 1 100%; }
+  .go { flex: 1 1 100%; }
+  .seg { display: flex; width: 100%; }
+  .seg label { flex: 1; }
+  .pillars td:first-child { white-space: nowrap; }
+  .who h2 { font-size: 22px; }
+  .tabs { gap: 0; }
+  .tabs button { flex: 1; padding: 10px 4px; font-size: 16px; }
+  table.pillars { min-width: 0; }
+  .pillars td, .pillars th { padding: 5px 2px; }
+  .pillars th:first-child, .pillars td:first-child { width: 2.6em; font-size: 11px; }
+  .pillars .small { font-size: 12px; }
+  .glyph { font-size: 30px; }
+  .yun { grid-auto-columns: 76px; }
+  .yun .gz { font-size: 21px; }
+  /* compact 12-palace board: whole chart fits the phone, details open below */
+  .board-wrap { overflow: visible; }
+  .board { min-width: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(96px, auto)); border-width: 1.5px; }
+  .pal { padding: 3px 3px 2px; gap: 1px; }
+  .pal .majors { flex-direction: column; gap: 0; }
+  .star-major { font-size: 13.5px; line-height: 1.35; }
+  .star-major .br { font-size: 9.5px; }
+  .mut { font-size: 9px; padding: 0 2px; margin-left: 1px; }
+  .minors { font-size: 10.5px; line-height: 1.35; gap: 0 3px; }
+  .adj { display: none; }
+  .pal .foot { padding-top: 2px; }
+  .pal .pname { font-size: 12.5px; }
+  .pal .gz { font-size: 10px; text-align: right; }
+  .pal .rng { font-size: 9.5px; }
+  .pal .marks { top: 2px; right: 2px; gap: 1px; }
+  .mk { font-size: 9px; padding: 0 2px; }
+  .center { padding: 6px; gap: 2px; }
+  .center .t { font-size: 15px; }
+  .center dl { font-size: 11px; gap: 0 6px; }
+  .center .opt { display: none; }
+  .legend { font-size: 11px; gap: 4px 10px; }
   .tabs button { padding: 10px 10px; font-size: 16px; }
   .mast { gap: 12px; } .seal { width: 52px; height: 52px; font-size: 18px; }
 }
@@ -175,6 +232,8 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
 }
 </style>
 
+</head>
+<body>
 <div class="wrap">
   <header class="mast">
     <div class="seal" aria-hidden="true"><span>八</span><span>字</span><span>紫</span><span>微</span></div>
@@ -589,7 +648,7 @@ function renderZiwei() {
     const [r, c] = POS[p.index];
     return `<button type="button" class="pal" data-i="${p.index}" style="grid-row:${r};grid-column:${c}" aria-label="${p.name}宮">
       <span class="marks">${marks}</span>
-      <span class="majors">${majors || '<span class="adj">（空宮）</span>'}</span>
+      <span class="majors">${majors || '<span class="empty">空宮</span>'}</span>
       <span class="minors">${minors}</span>
       <span class="adj">${adj}</span>
       <span class="foot"><span><span class="pname">${p.name}</span><br><span class="rng">${p.decadal.range[0]}–${p.decadal.range[1]}</span></span><span class="gz">${p.heavenlyStem}${p.earthlyBranch}<br>${p.changsheng12}</span></span>
@@ -598,22 +657,24 @@ function renderZiwei() {
   const center = `<div class="center" style="grid-row:2/4;grid-column:2/4">
     <span class="t">${state.input.name ? esc(state.input.name) : '命盤'}</span>
     <dl>
-      <dt>陽曆</dt><dd>${a.solarDate} ${a.time}</dd>
-      <dt>農曆</dt><dd>${a.lunarDate}</dd>
-      <dt>干支</dt><dd>${a.chineseDate}</dd>
+      <dt class="opt">陽曆</dt><dd class="opt">${a.solarDate} ${a.time}</dd>
+      <dt class="opt">農曆</dt><dd class="opt">${a.lunarDate}</dd>
+      <dt class="opt">干支</dt><dd class="opt">${a.chineseDate}</dd>
       <dt>五行局</dt><dd>${a.fiveElementsClass}</dd>
       <dt>命主 / 身主</dt><dd>${a.soul} / ${a.body}</dd>
-      <dt>生肖 / 星座</dt><dd>${a.zodiac} / ${a.sign}</dd>
+      <dt class="opt">生肖 / 星座</dt><dd class="opt">${a.zodiac} / ${a.sign}</dd>
       ${h ? `<dt>虛歲</dt><dd>${h.age.nominalAge} 歲</dd>` : ''}
     </dl></div>`;
   const mutList = h ? `<p class="small mutedtxt">流年四化（${h.yearly.heavenlyStem}${h.yearly.earthlyBranch}年）：${h.yearly.mutagen.map((s, i) => s + '化' + '祿權科忌'[i]).join('、')}；大限四化（${h.decadal.heavenlyStem}${h.decadal.earthlyBranch}）：${h.decadal.mutagen.map((s, i) => s + '化' + '祿權科忌'[i]).join('、')}。</p>` : '';
   return `
+  <div class="zw-split">
   <div class="card"><h3>紫微命盤<small>點任一宮位看解讀，淺色為三方四正</small></h3>
     <div class="board-wrap"><div class="board" id="board">${cells}${center}</div></div>
     <div class="legend"><span><span class="mut mut-祿">祿</span><span class="mut mut-權">權</span><span class="mut mut-科">科</span><span class="mut mut-忌">忌</span> 生年四化</span><span><span class="mk body">身</span> 身宮</span><span><span class="mk dec">限</span> 目前大限</span><span><span class="mk yr">年</span> 今年流年命宮</span><span>灰字為煞星</span></div>
     ${mutList}
   </div>
   <div class="card" id="palaceDetail"></div>
+  </div>
   <div class="card"><h3>十二宮速覽</h3><ul class="list">${a.palaces.slice().sort((x, y) => order(x) - order(y)).map((p) => { const b = borrowed(p); return `<li><b>${p.name}</b>（${PALACE[p.name] || ''}）：${b.borrowed ? '空宮，借對宮 ' : ''}${starList(b.stars) || '無主星'}${p.minorStars.length ? '；輔星 ' + p.minorStars.map((s) => s.name).join('、') : ''}</li>`; }).join('')}</ul></div>`;
 }
 const PALACE_ORDER = ['命宮', '兄弟', '夫妻', '子女', '財帛', '疾厄', '遷移', '僕役', '交友', '官祿', '田宅', '福德', '父母'];
@@ -640,7 +701,7 @@ function palaceDetail(i) {
 }
 function bindBoard() {
   const board = $('#board'); if (!board) return;
-  board.addEventListener('click', (e) => { const b = e.target.closest('.pal'); if (b) { selPalace = +b.dataset.i; paintSel(); } });
+  board.addEventListener('click', (e) => { const b = e.target.closest('.pal'); if (b) { selPalace = +b.dataset.i; paintSel(); if (matchMedia('(max-width: 979px)').matches) $('#palaceDetail').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); } });
   paintSel();
 }
 function paintSel() {
@@ -713,3 +774,5 @@ function boot() {
 boot();
 })();
 </script>
+</body>
+</html>
