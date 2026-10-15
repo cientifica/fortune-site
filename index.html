@@ -404,6 +404,7 @@ const MU = { 木: '未', 火: '戌', 土: '辰', 金: '丑', 水: '辰' };
 const CHONG = {}; '子午丑未寅申卯酉辰戌巳亥'.match(/../g).forEach((p) => { CHONG[p[0]] = p[1]; CHONG[p[1]] = p[0]; });
 const LIUHE = {}; '子丑寅亥卯戌辰酉巳申午未'.match(/../g).forEach((p) => { LIUHE[p[0]] = p[1]; LIUHE[p[1]] = p[0]; });
 const SANHE = [['申子辰', '水', '癸'], ['亥卯未', '木', '乙'], ['寅午戌', '火', '丁'], ['巳酉丑', '金', '辛']];
+const HUA = { 甲: '土', 己: '土', 乙: '金', 庚: '金', 丙: '水', 辛: '水', 丁: '木', 壬: '木', 戊: '火', 癸: '火' };
 const GANHE = { 甲: '己', 己: '甲', 乙: '庚', 庚: '乙', 丙: '辛', 辛: '丙', 丁: '壬', 壬: '丁', 戊: '癸', 癸: '戊' };
 // 長生祿刃為重根，餘氣墓庫為輕根；陰長生力弱（子平真詮〈論陰陽生死〉〈論十干得時不旺失時不弱〉）
 function rootOf(stem, zhi, hide) {
@@ -524,11 +525,17 @@ function computeBazi(solar, gender) {
   const selfStems = shown.filter((s) => ['比劫', '印'].includes(GOD_GROUP[tenGod(dm, s)])).length;
   const hasGuan = shown.some((s) => GOD_GROUP[tenGod(dm, s)] === '官殺') || cols.some((c) => GOD_GROUP[tenGod(dm, c.hide[0])] === '官殺');
   let special = null;
-  if (dmRoot === 0 && selfStems === 0 && ratio < 0.2) {
+  // 化氣格：日干與月干或時干相合，月令為化神之氣，化神不受剋，日主本身無重根（子平真詮〈論十干合而不合〉、滴天髓〈化象〉）
+  const hua = HUA[dm];
+  const mate = [cols[1].gan, cols[3].gan].find((g) => GANHE[dm] === g);
+  if (mate && BRANCH_EL[mz] === hua && shown.filter((g) => g === mate).length === 1 && !shown.includes(dm)
+      && !shown.some((g) => g !== mate && STEM_EL[g] === ctrlBy(hua)) && dmRoot < 3) {
+    special = { kind: 'hua', name: `${dm}${mate}化${hua}格`, fav: [elGroup(hua), elGroup(genBy(hua))], unfav: [elGroup(ctrlBy(hua))] };
+  } else if (dmRoot === 0 && selfStems === 0 && ratio < 0.2) {
     const dom = ['食傷', '財', '官殺'].sort((a, b) => gs[b] - gs[a])[0];
-    special = { name: { 食傷: '從兒格', 財: '從財格', 官殺: '從殺格' }[dom], fav: [dom, dom === '官殺' ? '財' : dom === '財' ? '食傷' : '財'], unfav: ['比劫', '印'] };
+    special = { kind: 'cong', name: { 食傷: '從兒格', 財: '從財格', 官殺: '從殺格' }[dom], fav: [dom, dom === '官殺' ? '財' : dom === '財' ? '食傷' : '財'], unfav: ['比劫', '印'] };
   } else if (ratio > 0.85 && !hasGuan) {
-    special = { name: { 木: '曲直格', 火: '炎上格', 土: '稼穡格', 金: '從革格', 水: '潤下格' }[dmEl] + '（專旺）', fav: ['比劫', '印', '食傷'], unfav: ['官殺', '財'] };
+    special = { kind: 'zhuan', name: { 木: '曲直格', 火: '炎上格', 土: '稼穡格', 金: '從革格', 水: '潤下格' }[dmEl] + '（專旺）', fav: ['比劫', '印', '食傷'], unfav: ['官殺', '財'] };
   }
 
   let rule;
@@ -561,6 +568,22 @@ function computeBazi(solar, gender) {
     const pos = shown.indexOf(geStem); const idx = [0, 1, 3][pos];
     if (pos >= 0) [idx - 1, idx + 1].forEach((k) => { if (k >= 0 && k <= 3 && k !== 2 && GANHE[geStem] === cols[k].gan) notes.push(`格神${geStem}被${P[k]}干${cols[k].gan}合住，用神力量減弱。`); });
   }
+  // 官殺混雜：正官、七殺同透，須去一留一方清（子平真詮〈論偏官〉、淵海子平〈論八字撮要法〉）
+  const at = (god) => [0, 1, 3].filter((k) => tenGod(dm, cols[k].gan) === god);
+  const zg = at('正官'), qs = at('七殺');
+  let guansha = null;
+  if (!special && zg.length && qs.length) {
+    const heBy = (ks) => ks.some((k) => [k - 1, k + 1].some((j) => j >= 0 && j <= 3 && j !== 2 && GANHE[cols[k].gan] === cols[j].gan));
+    const hasGod = (g) => [0, 1, 3].some((k) => tenGod(dm, cols[k].gan) === g);
+    if (heBy(qs) && !heBy(zg)) guansha = ['去殺留官', '七殺被鄰干合去'];
+    else if (heBy(zg) && !heBy(qs)) guansha = ['去官留殺', '正官被鄰干合去'];
+    else if (hasGod('食神') && !hasGod('傷官')) guansha = ['去殺留官', '食神制住七殺'];
+    else if (hasGod('傷官') && !hasGod('食神')) guansha = ['去官留殺', '傷官剋去正官'];
+    else guansha = ['官殺混雜', ''];
+    notes.push(guansha[0] === '官殺混雜'
+      ? `天干正官、七殺同透，為<b>官殺混雜</b>，格局較濁；古籍說要「去官留殺」或「去殺留官」才清，行運遇到能合去或制住其中一方時較順。`
+      : `天干正官、七殺同透，但${guansha[1]}，成<b>${guansha[0]}</b>，混雜得以澄清，格局轉清。`);
+  }
   if (rel.some((r) => r.month)) notes.push(`月令${mz}逢沖，格局較不穩定，${CHONG[mz]}年、${CHONG[mz]}運尤需留意。`);
 
   const missing = EL.filter((e) => raw[e] === 0);
@@ -583,7 +606,7 @@ function computeBazi(solar, gender) {
       cai: (strong ? ['食傷', '財'] : ['印', '比劫']).some((g) => [STEM_EL[gz[0]], BRANCH_EL[gz[1]]].includes(groupEl(g))) };
   });
   return { lunar, ec, cols, dm, dmEl, score, raw, total, ratio, deLing, strength, strong, fav, unfav, missing, gods, groups, topGroup, dayun,
-    gs, dmRoot, roots, days, sl, mz, ge, geGod, geStem, geHow, aux, special, hou, rel, notes, groupEl, elGroup, caiLevel, caiEl, ku, kuAt, luAt,
+    gs, dmRoot, roots, days, sl, mz, ge, geGod, geStem, geHow, aux, special, guansha, hou, rel, notes, groupEl, elGroup, caiLevel, caiEl, ku, kuAt, luAt,
     yunStart: { y: yun.getStartYear(), m: yun.getStartMonth(), d: yun.getStartDay() } };
 }
 // 大運重地支，流年重天干（滴天髓〈歲運〉）；運支沖月令另扣分（子平真詮〈論行運〉）
@@ -737,7 +760,7 @@ function sameVibe(dmEl, stars) {
 }
 function geLabel(bz) { return bz.special ? bz.special.name : bz.ge; }
 function geTrait(bz) {
-  if (bz.special) return bz.special.name.startsWith('從') ? '日主無根，順從命局中最旺的力量，懂得借勢而為。' : '一種五行獨旺，個性專注鮮明，適合順勢發揮專長。';
+  if (bz.special) return { cong: '日主無根，順從命局中最旺的力量，懂得借勢而為。', zhuan: '一種五行獨旺，個性專注鮮明，適合順勢發揮專長。', hua: '日主與人相合而化，能放下本性融入環境，善於轉換角色。' }[bz.special.kind];
   return GE_TEXT[bz.ge][1];
 }
 function caiExtra(bz) {
@@ -789,7 +812,7 @@ function renderBazi() {
     </div></div>
   </div>
   <div class="card"><h3>格局與喜用<small>八字用神，專求月令</small></h3><div class="prose">
-    <p>生於交節後第 ${Math.floor(bz.days) + 1} 天，月令${bz.mz}中由 <b>${bz.sl}</b> 司令。${bz.special ? `日主${bz.special.name.startsWith('從') ? '無根而四柱幾乎不見生扶' : '一行獨旺且不見官殺'}，成 <b>${bz.special.name}</b>，屬於特殊格局，喜忌要順著命局的氣勢走，與一般格局相反。` : `${bz.geHow}，定為 <b>${bz.ge}</b>。`}</p>
+    <p>生於交節後第 ${Math.floor(bz.days) + 1} 天，月令${bz.mz}中由 <b>${bz.sl}</b> 司令。${bz.special ? `日主${{ cong: '無根而四柱幾乎不見生扶', zhuan: '一行獨旺且不見官殺', hua: `${bz.dm}與鄰干相合，又生在${bz.mz}月得化神之氣，化神不受剋` }[bz.special.kind]}，成 <b>${bz.special.name}</b>，屬於特殊格局，喜忌要順著命局的氣勢走，與一般格局相反。` : `${bz.geHow}，定為 <b>${bz.ge}</b>。`}</p>
     ${bz.special ? '' : `<p>${GE_TEXT[bz.ge][0]}${bz.aux ? `四柱透出${bz.aux}，以此為用。` : ''}你的日主${bz.strong ? '有力' : '偏弱'}，取用如下。</p>`}
     <p>喜用：${bz.fav.map((e) => `${elSpan(e)}（${bz.elGroup(e)}）`).join('、')}；忌：${bz.unfav.length ? bz.unfav.map((e) => `${elSpan(e)}（${bz.elGroup(e)}）`).join('、') : '無明顯忌神'}。</p>
     ${bz.hou ? `<p>生於${'亥子丑'.includes(bz.mz) ? '冬季，命局偏寒' : '夏季，命局偏燥'}，${bz.hou === '火' ? '需要火來暖局' : '需要水來潤局'}，所以把${elSpan(bz.hou)}列為第一喜用（調候）。</p>` : ''}
