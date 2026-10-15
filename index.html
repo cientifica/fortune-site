@@ -293,12 +293,19 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // lunar-javascript returns simplified characters; convert the ones it can emit.
-const T2 = '杀殺财財伤傷带帶临臨绝絕养養蜡蠟炉爐涧澗头頭剑劍灯燈钗釵钏釧雳靂长長杨楊驿驛腊臘闰閏马馬龙龍鸡雞猪豬';
+const T2 = '杀殺财財伤傷带帶临臨绝絕养養蜡蠟炉爐涧澗头頭剑劍锋鋒灯燈钗釵钏釧雳靂长長杨楊驿驛腊臘闰閏马馬龙龍鸡雞猪豬';
 const S2T = {}; for (let i = 0; i < T2.length; i += 2) S2T[T2[i]] = T2[i + 1];
 const t = (s) => String(s || '').replace(/./g, (c) => S2T[c] || c);
 
 const STEMS = '甲乙丙丁戊己庚辛壬癸';
 const BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
+// 十二長生：陽干順行、陰干逆行（火土同宮）
+const STAGES = ['長生', '沐浴', '冠帶', '臨官', '帝旺', '衰', '病', '死', '墓', '絕', '胎', '養'];
+const SHENG_AT = { 甲: '亥', 乙: '午', 丙: '寅', 丁: '酉', 戊: '寅', 己: '酉', 庚: '巳', 辛: '子', 壬: '申', 癸: '卯' };
+function stage(stem, zhi) {
+  const d = (BRANCHES.indexOf(zhi) - BRANCHES.indexOf(SHENG_AT[stem]) + 12) % 12;
+  return STAGES[STEMS.indexOf(stem) % 2 ? (12 - d) % 12 : d];
+}
 const EL = ['木', '火', '土', '金', '水'];
 const STEM_EL = { 甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土', 己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水' };
 const BRANCH_EL = { 子: '水', 丑: '土', 寅: '木', 卯: '木', 辰: '土', 巳: '火', 午: '火', 未: '土', 申: '金', 酉: '金', 戌: '土', 亥: '水' };
@@ -451,10 +458,10 @@ function computeBazi(solar, gender) {
   const lunar = solar.getLunar();
   const ec = lunar.getEightChar();
   const cols = [
-    { key: '年柱', gan: ec.getYearGan(), zhi: ec.getYearZhi(), hide: ec.getYearHideGan(), ny: ec.getYearNaYin(), ds: ec.getYearDiShi() },
-    { key: '月柱', gan: ec.getMonthGan(), zhi: ec.getMonthZhi(), hide: ec.getMonthHideGan(), ny: ec.getMonthNaYin(), ds: ec.getMonthDiShi() },
-    { key: '日柱', gan: ec.getDayGan(), zhi: ec.getDayZhi(), hide: ec.getDayHideGan(), ny: ec.getDayNaYin(), ds: ec.getDayDiShi() },
-    { key: '時柱', gan: ec.getTimeGan(), zhi: ec.getTimeZhi(), hide: ec.getTimeHideGan(), ny: ec.getTimeNaYin(), ds: ec.getTimeDiShi() },
+    { key: '年柱', gan: ec.getYearGan(), zhi: ec.getYearZhi(), hide: ec.getYearHideGan(), ny: ec.getYearNaYin(), ds: ec.getYearDiShi(), xk: ec.getYearXunKong() },
+    { key: '月柱', gan: ec.getMonthGan(), zhi: ec.getMonthZhi(), hide: ec.getMonthHideGan(), ny: ec.getMonthNaYin(), ds: ec.getMonthDiShi(), xk: ec.getMonthXunKong() },
+    { key: '日柱', gan: ec.getDayGan(), zhi: ec.getDayZhi(), hide: ec.getDayHideGan(), ny: ec.getDayNaYin(), ds: ec.getDayDiShi(), xk: ec.getDayXunKong() },
+    { key: '時柱', gan: ec.getTimeGan(), zhi: ec.getTimeZhi(), hide: ec.getTimeHideGan(), ny: ec.getTimeNaYin(), ds: ec.getTimeDiShi(), xk: ec.getTimeXunKong() },
   ];
   const dm = cols[2].gan;
   const dmEl = STEM_EL[dm];
@@ -599,7 +606,7 @@ function computeBazi(solar, gender) {
   const kuAt = cols.filter((c) => c.zhi === ku).map((c) => c.key);
   const luAt = cols.filter((c) => c.zhi === LU[dm]).map((c) => c.key);
 
-  const yun = ec.getYun(gender === '男' ? 1 : 0);
+  const yun = ec.getYun(gender === '男' ? 1 : 0, 2); // 流派2：以分鐘精算起運
   const dayun = yun.getDaYun(10).filter((d) => d.getGanZhi()).map((d) => {
     const gz = d.getGanZhi();
     return { gz, startAge: d.getStartAge(), endAge: d.getEndAge(), startYear: d.getStartYear(), endYear: d.getEndYear(), god: tenGod(dm, gz[0]), rate: rateGZ(gz, fav, unfav, 'yun', mz),
@@ -782,7 +789,9 @@ function renderBazi() {
       ${row('地支', (x) => `<span class="glyph el-${BRANCH_EL[x.zhi]}">${x.zhi}</span>`)}
       ${row('藏干', (x) => x.hide.map((h) => `<span class="el-${STEM_EL[h]}">${h}</span><span class="mutedtxt small">${tenGod(bz.dm, h)}</span>`).join('<br>'), 'small')}
       ${row('納音', (x) => t(x.ny), 'small')}
-      ${row('十二運', (x) => t(x.ds), 'small')}
+      ${row('星運', (x) => t(x.ds), 'small')}
+      ${row('自坐', (x) => stage(x.gan, x.zhi), 'small')}
+      ${row('空亡', (x) => t(x.xk), 'small')}
     </tbody></table></div>`;
   const max = Math.max(...EL.map((e) => bz.score[e]));
   const bars = EL.map((e) => `<div class="bar"><span class="k el-${e}">${e}</span><span class="track"><span class="fill bg-${e}" style="width:${(bz.score[e] / max) * 100}%;display:block"></span></span><span class="n">${(bz.score[e] / bz.total * 100).toFixed(0)}%</span></div>`).join('');
@@ -801,10 +810,12 @@ function renderBazi() {
   const dmt = DM_TEXT[bz.dm];
   return `
   <div class="card"><h3>四柱命盤<small>${t(bz.ec.toString())}</small></h3>${table}
+    <p class="hint" style="margin-top:8px">星運是日主在各柱地支的十二長生，自坐是各柱天干在自己地支的十二長生。胎元 ${t(bz.ec.getTaiYuan())}（${t(bz.ec.getTaiYuanNaYin())}），胎息 ${t(bz.ec.getTaiXi())}（${t(bz.ec.getTaiXiNaYin())}）。</p>
     <p class="hint" style="margin-top:8px">日柱（藍底）的天干就是「日主」，代表你自己；其餘干支以十神表示與你的關係。</p></div>
   <div class="grid2">
     <div class="card"><h3>五行分布<small>加權估算，月令加倍</small></h3><div class="bars">${bars}</div>
-      <p class="hint" style="margin-top:10px">${bz.missing.length ? '天干地支中缺' + bz.missing.map(elSpan).join('、') + '（藏干不計）。' : '天干地支五行俱全。'}</p></div>
+      <p class="hint" style="margin-top:10px">${bz.missing.length ? '天干地支中缺' + bz.missing.map(elSpan).join('、') + '（藏干不計）。' : '天干地支五行俱全。'}
+      生於${bz.mz}月，${(() => { const m = BRANCH_EL[bz.mz]; const o = { [m]: '旺', [gen(m)]: '相', [genBy(m)]: '休', [ctrlBy(m)]: '囚', [ctrl(m)]: '死' }; return EL.map((e) => `${elSpan(e)}${o[e]}`).join('、'); })()}（旺相休囚死）。</p></div>
     <div class="card"><h3>日主強弱<small>以通根論</small></h3><div class="prose">
       <p>日主 <b>${bz.dm}${dmt[0]}</b>，生於${bz.mz}月，${bz.deLing ? '得月令之助' : '不得月令'}。${bz.roots.length ? '在地支的根：' + bz.roots.map((r) => `${r.pillar}${r.zhi}（${r.kind}）`).join('、') + '。' : '四柱地支沒有日主的根。'}</p>
       <p>生扶日主的力量約佔 ${Math.round(bz.ratio * 100)}%，判斷為 <b>${bz.strength}</b>。</p>
