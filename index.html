@@ -302,6 +302,14 @@ const BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
 // 十二長生：陽干順行、陰干逆行（火土同宮）
 const STAGES = ['長生', '沐浴', '冠帶', '臨官', '帝旺', '衰', '病', '死', '墓', '絕', '胎', '養'];
 const SHENG_AT = { 甲: '亥', 乙: '午', 丙: '寅', 丁: '酉', 戊: '寅', 己: '酉', 庚: '巳', 辛: '子', 壬: '申', 癸: '卯' };
+// 八字命宮：以中氣（太陽過宮）定月，子上起正月逆數至生月，再從生時順數至卯（三命通會〈論命宮〉）
+const ZHONGQI = { 雨水: 2, 春分: 3, 谷雨: 4, 小满: 5, 夏至: 6, 大暑: 7, 处暑: 8, 秋分: 9, 霜降: 10, 小雪: 11, 冬至: 0, 大寒: 1 };
+function mingGong(lunar, ec) {
+  const m = ((ZHONGQI[lunar.getPrevQi().getName()] + 1) % 12 - 2 + 12) % 12 + 1; // 寅月 = 1
+  const z = ((1 - m + 12) % 12 + (3 - BRANCHES.indexOf(ec.getTimeZhi()) + 12) % 12) % 12;
+  const ys = STEMS.indexOf(ec.getYearGan());
+  return STEMS[((ys % 5) * 2 + 2 + (z - 2 + 12) % 12) % 10] + BRANCHES[z];
+}
 function stage(stem, zhi) {
   const d = (BRANCHES.indexOf(zhi) - BRANCHES.indexOf(SHENG_AT[stem]) + 12) % 12;
   return STAGES[STEMS.indexOf(stem) % 2 ? (12 - d) % 12 : d];
@@ -613,7 +621,7 @@ function computeBazi(solar, gender) {
       cai: (strong ? ['食傷', '財'] : ['印', '比劫']).some((g) => [STEM_EL[gz[0]], BRANCH_EL[gz[1]]].includes(groupEl(g))) };
   });
   return { lunar, ec, cols, dm, dmEl, score, raw, total, ratio, deLing, strength, strong, fav, unfav, missing, gods, groups, topGroup, dayun,
-    gs, dmRoot, roots, days, sl, mz, ge, geGod, geStem, geHow, aux, special, guansha, hou, rel, notes, groupEl, elGroup, caiLevel, caiEl, ku, kuAt, luAt,
+    ming: mingGong(lunar, ec), gs, dmRoot, roots, days, sl, mz, ge, geGod, geStem, geHow, aux, special, guansha, hou, rel, notes, groupEl, elGroup, caiLevel, caiEl, ku, kuAt, luAt,
     yunStart: { y: yun.getStartYear(), m: yun.getStartMonth(), d: yun.getStartDay() } };
 }
 // 大運重地支，流年重天干（滴天髓〈歲運〉）；運支沖月令另扣分（子平真詮〈論行運〉）
@@ -810,7 +818,7 @@ function renderBazi() {
   const dmt = DM_TEXT[bz.dm];
   return `
   <div class="card"><h3>四柱命盤<small>${t(bz.ec.toString())}</small></h3>${table}
-    <p class="hint" style="margin-top:8px">星運是日主在各柱地支的十二長生，自坐是各柱天干在自己地支的十二長生。胎元 ${t(bz.ec.getTaiYuan())}（${t(bz.ec.getTaiYuanNaYin())}），胎息 ${t(bz.ec.getTaiXi())}（${t(bz.ec.getTaiXiNaYin())}）。</p>
+    <p class="hint" style="margin-top:8px">星運是日主在各柱地支的十二長生，自坐是各柱天干在自己地支的十二長生。胎元 ${t(bz.ec.getTaiYuan())}（${t(bz.ec.getTaiYuanNaYin())}），胎息 ${t(bz.ec.getTaiXi())}（${t(bz.ec.getTaiXiNaYin())}），命宮 ${bz.ming}，身宮 ${t(bz.ec.getShenGong())}。</p>
     <p class="hint" style="margin-top:8px">日柱（藍底）的天干就是「日主」，代表你自己；其餘干支以十神表示與你的關係。</p></div>
   <div class="grid2">
     <div class="card"><h3>五行分布<small>加權估算，月令加倍</small></h3><div class="bars">${bars}</div>
