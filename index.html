@@ -686,6 +686,34 @@ function setTab(name) {
   document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== name; });
 }
 
+// 感情對象：配偶星所在柱定年齡與相識場合（年柱長輩、月柱同儕職場、日柱自身、時柱晚輩），夫妻宮主星輔星參看
+const SPOUSE_PILLAR = [
+  { age: 2, meet: '長輩、親友介紹，或在家鄉、老家附近認識' },
+  { age: 1, meet: '工作職場、同學同事或業務往來中認識' },
+  { age: 0, meet: '自己的生活圈，例如興趣社團、住家附近或朋友聚會' },
+  { age: -1, meet: '晚輩、下屬、網路社群或旅行途中認識' },
+];
+const FUQI_AGE = { 紫微: 1, 天府: 1, 天梁: 1, 七殺: 1, 武曲: 'gap', 天機: 'gap', 貪狼: 'gap', 巨門: 'gap', 破軍: 'gap', 廉貞: 0, 天相: 0 };
+const FUQI_AGE_G = { 太陽: { 女: 1, 男: 0 }, 天同: { 女: 1, 男: -1 }, 太陰: { 女: 0, 男: -1 } };
+const FUQI_MEET = { 紫微: '正式場合或經人引薦', 天機: '學校、進修或工作中', 太陽: '公開場合、社團活動', 武曲: '職場或財經相關場合', 天同: '休閒娛樂、輕鬆的聚會', 廉貞: '工作或公關應酬場合', 天府: '職場或穩定的熟人圈', 太陰: '安靜的場所或住家附近', 貪狼: '聚會、娛樂或才藝場合', 巨門: '需要溝通交流的場合，例如課程、討論', 天相: '工作或朋友介紹', 天梁: '長輩、老師介紹', 七殺: '工作或有挑戰性的環境', 破軍: '環境變動時，例如換工作、搬家' };
+const FUQI_MINOR = { 文昌: '讀書、考試或文藝活動', 文曲: '讀書、考試或文藝活動', 左輔: '朋友介紹', 右弼: '朋友介紹', 天魁: '貴人、上司或長輩牽線', 天鉞: '貴人、上司或長輩牽線', 天馬: '異地、出差或旅行中', 紅鸞: '喜慶聚會', 天喜: '喜慶聚會', 天姚: '社交派對', 咸池: '社交派對' };
+// 職場人際：八字官殺為主管、比劫為同事；紫微父母宮看上司、交友宮看同事部屬
+const GOOD_STARS = ['紫微', '天府', '天梁', '太陽', '天相', '天同', '太陰', '左輔', '右弼', '天魁', '天鉞', '祿存'];
+const BAD_STARS = ['擎羊', '陀羅', '火星', '鈴星', '地空', '地劫', '七殺', '破軍', '巨門'];
+function palaceTone(p) {
+  const b = borrowed(p); const all = b.stars.concat(p.minorStars);
+  const good = all.filter((x) => GOOD_STARS.includes(x.name) || ['祿', '權', '科'].includes(x.mutagen)).length;
+  const bad = all.filter((x) => BAD_STARS.includes(x.name) || x.mutagen === '忌').length;
+  return { names: all.map((x) => x.name + (x.mutagen ? '化' + x.mutagen : '')).join('、') || '空宮', tone: good > bad ? 1 : bad > good ? -1 : 0 };
+}
+// 投資方向：喜用五行對應產業（傳統五行分類），僅供參考
+const EL_INVEST = {
+  木: '教育文創、出版紙業、醫藥生技、農林綠能、紡織',
+  火: '半導體電子、能源電力、傳媒網路、餐飲美容、光電',
+  土: '不動產、營建水泥、倉儲物流園區、農地、保險',
+  金: '金融銀行、黃金貴金屬、鋼鐵五金、機械汽車、珠寶',
+  水: '航運物流、旅遊觀光、水資源飲料、通訊、跨國貿易',
+};
 function elSpan(e) { return `<span class="el-${e}">${e}</span>`; }
 function starsOf(p) { return p.majorStars.filter((s) => s.type === 'major'); }
 function borrowed(p) {
@@ -730,6 +758,60 @@ function renderSummary() {
   const dayZhiGod = tenGod(bz.dm, bz.cols[2].hide[0]);
   const p4 = `夫妻宮${fb.borrowed ? '借對宮' : ''}為 <b>${fb.stars.map((s) => s.name).join('、') || '空宮'}</b>，${fb.stars.map((s) => STAR[s.name] && STAR[s.name].fuqi).filter(Boolean).join('')}八字日支（配偶宮）藏${bz.cols[2].hide[0]}，為<b>${dayZhiGod}</b>，代表伴侶帶有「${GOD_TEXT[dayZhiGod].split('，')[0].split('；')[0]}」的特質；${state.input.gender === '男' ? '男命以財星' : '女命以官殺'}為配偶星，在命局中${bz.groups[spouseGod] >= 2 ? '有力' : bz.groups[spouseGod] >= 1 ? '適中' : '較弱'}，${bz.fav.includes(bz.groupEl(spouseGod)) ? '而且是喜用神，伴侶對你多有助力' : bz.unfav.includes(bz.groupEl(spouseGod)) ? '但屬於忌神，感情需要較多磨合與經營' : '對命局影響不大，緣分來時要主動把握'}。`;
 
+  // partner age & where to meet
+  const g = state.input.gender;
+  const spouseEl = bz.groupEl(spouseGod);
+  const hits = [];
+  bz.cols.forEach((c, i) => {
+    if (i !== 2 && GOD_GROUP[tenGod(bz.dm, c.gan)] === spouseGod) hits.push({ i, w: 1.5, sha: tenGod(bz.dm, c.gan) === '七殺' });
+    if (GOD_GROUP[tenGod(bz.dm, c.hide[0])] === spouseGod) hits.push({ i, w: 1, sha: tenGod(bz.dm, c.hide[0]) === '七殺' });
+  });
+  const ageBz = hits.length ? hits.reduce((t, h) => t + SPOUSE_PILLAR[h.i].age * h.w, 0) / hits.reduce((t, h) => t + h.w, 0) : 0;
+  const zwAges = fb.stars.map((x) => (FUQI_AGE_G[x.name] ? FUQI_AGE_G[x.name][g] : FUQI_AGE[x.name])).filter((v) => v !== undefined);
+  const gap = zwAges.includes('gap') || hits.some((h) => h.sha && g === '女');
+  const ageAll = ageBz + zwAges.filter((v) => typeof v === 'number').reduce((t, v) => t + v * 0.5, 0);
+  const ageTxt = ageAll >= 0.6 ? `對方比你年長，大約大 ${gap ? '5–10' : '2–6'} 歲` : ageAll <= -0.4 ? `對方比你年輕，大約小 ${gap ? '4–8' : '2–5'} 歲` : gap ? '年紀差距可能較大，年長或年幼都有可能（相差 5 歲以上）' : '年紀相近，上下 3 歲以內';
+  const mainHit = hits.slice().sort((x, y) => y.w - x.w || Math.abs(1 - x.i) - Math.abs(1 - y.i))[0];
+  const meets = [];
+  if (mainHit) meets.push(SPOUSE_PILLAR[mainHit.i].meet);
+  fb.stars.forEach((x) => { if (FUQI_MEET[x.name]) meets.push(FUQI_MEET[x.name]); });
+  fq.minorStars.concat(fq.adjectiveStars).forEach((x) => { if (FUQI_MINOR[x.name] && !meets.includes(FUQI_MINOR[x.name])) meets.push(FUQI_MINOR[x.name]); });
+  if ('寅申巳亥'.includes(bz.cols[2].zhi) && !meets.some((m) => m.includes('異地'))) meets.push('外地或移動中（日支逢驛馬）');
+  const loveYears = [];
+  for (let y = now; y < now + 10 && loveYears.length < 4; y++) {
+    const gz = yearGZ(y);
+    if (GOD_GROUP[tenGod(bz.dm, gz[0])] === spouseGod || LIUHE[gz[1]] === bz.cols[2].zhi) loveYears.push(`${y}（${gz}）`);
+  }
+  const p6 = `<b>年齡：</b>${ageTxt}。${hits.length ? `八字配偶星（${g === '男' ? '財星' : '官殺'}）出現在${[...new Set(hits.map((h) => ['年', '月', '日', '時'][h.i] + '柱'))].join('、')}，` : '八字配偶星不明顯，'}${fb.stars.length ? `紫微夫妻宮${fb.borrowed ? '借對宮' : ''}為${fb.stars.map((x) => x.name).join('、')}，` : ''}綜合來看是這個傾向。</p>
+    <p><b>在哪裡認識：</b>${meets.slice(0, 3).join('；') || '緣分多由大運流年引動，宜多參加聚會、擴大生活圈'}。</p>
+    <p><b>較有緣分的年份：</b>${loveYears.length ? loveYears.join('、') + '，這些年流年天干帶配偶星或地支與配偶宮六合，' + (bz.fav.includes(spouseEl) ? '而配偶星又是你的喜用，遇到的對象對你有幫助。' : '容易遇到心動對象。') : '未來十年流年較少直接引動配偶星，緣分要靠自己主動經營。'}`;
+
+  // investment
+  const favInv = bz.fav.slice(0, 2).map((e) => `${elSpan(e)}：${EL_INVEST[e]}`);
+  const badEl = bz.unfav[0];
+  const risk = { 'strong-strong': '身強財旺，承受得起波動，可以配置部分積極成長型的標的', 'strong-weak': '身強財弱，有能力主動布局，但財源不多，宜集中在自己熟悉的領域', 'strong-none': '身強財弱，有能力主動布局，但財源不多，宜集中在自己熟悉的領域', 'weak-strong': '身弱財旺，機會多但容易力不從心，宜分散、定期定額，避免槓桿與借貸', 'weak-weak': '身弱財弱，以穩健保本為主，例如定存、債券或指數型定期定額', 'weak-none': '身弱財弱，以穩健保本為主，例如定存、債券或指數型定期定額' }[(bz.strong ? 'strong' : 'weak') + '-' + bz.caiLevel];
+  const pian = (bz.gods.偏財 || 0) > (bz.gods.正財 || 0);
+  const tz = palaceByName('田宅'); const tb = borrowed(tz);
+  const house = tb.stars.some((x) => ['天府', '太陰', '武曲', '紫微', '天相'].includes(x.name) || x.mutagen === '祿') || tz.minorStars.some((x) => x.name === '祿存');
+  const invYears = []; for (let y = now; y < now + 6; y++) if (rateGZ(yearGZ(y), bz.fav, bz.unfav, 'year', bz.mz) === 'up') invYears.push(y);
+  const p7 = `<b>適合的產業：</b>依喜用五行，可多留意 ${favInv.join('；')}。${badEl ? `忌神為${elSpan(badEl)}，${EL_INVEST[badEl].split('、').slice(0, 2).join('、')}等類別較不宜重押。` : ''}</p>
+    <p><b>投資風格：</b>${risk}。${pian ? '命局偏財比正財旺，對市場機會有直覺，適合靈活操作，但一定要設停損。' : '命局正財比偏財旺，適合長期持有、領息型的穩健配置，不宜追高殺低。'}${bz.groups.比劫 >= 4 ? '比劫較重，不宜合夥投資、替人作保或借錢給人。' : ''}${house ? `紫微田宅宮${tb.stars.map((x) => x.name).join('、') || ''}，與不動產有緣，可考慮置產。` : ''}</p>
+    <p><b>較有利的年份：</b>${invYears.length ? invYears.join('、') + ' 年流年五行對你有利，較適合布局。' : '未來幾年流年五行較中性，宜穩紮穩打。'}</p>
+    <p class="small mutedtxt">以上依命理五行推論，僅供參考，非投資建議；實際投資請評估自身財務狀況，必要時諮詢專業理財顧問。`;
+
+  // workplace relationships
+  const gGuan = bz.gods.正官 || 0, gSha = bz.gods.七殺 || 0, gShang = bz.gods.傷官 || 0, gYin = (bz.gods.正印 || 0) + (bz.gods.偏印 || 0);
+  const guanEl = bz.groupEl('官殺'), selfEl = bz.dmEl;
+  const bossType = gGuan + gSha === 0 ? '命局官殺不顯，比較不受管束，適合自由度高或自己當家的工作型態；遇到主管時，關係多半平淡、不太親近' : gSha > gGuan ? '七殺比正官旺，遇到的主管多半強勢、要求高、步調快，壓力大但也能逼出你的實力' : '正官比七殺旺，遇到的主管多半講規矩、重制度，只要守本分、按流程做事就容易被信任';
+  const bossFav = bz.fav.includes(guanEl) ? '官殺是你的喜用，容易得到上司賞識與提拔。' : bz.unfav.includes(guanEl) ? '但官殺屬於忌神，和主管之間容易覺得被管太多、有壓力，溝通時多一點耐心。' : '';
+  const bossExtra = (gShang >= 2 && gGuan > 0 ? '命中傷官見官，說話直、有主見，要留意別當面頂撞上司。' : '') + (gYin >= 1.5 && gGuan + gSha > 0 ? '官印相生，容易遇到願意提攜你的長官或前輩。' : '');
+  const fm = palaceTone(palaceByName('父母'));
+  const jy = palaceTone(palaceByName('僕役'));
+  const peerTxt = (bz.groups.比劫 || 0) < 1.5 ? '比劫少，獨立作業的時候多，同事之間較少深交，凡事靠自己' : (bz.gods.劫財 || 0) > (bz.gods.比肩 || 0) ? '劫財旺，同事之間競爭感強，容易遇到搶功或爭資源的情況' : '比肩旺，和同事相處像朋友，重義氣、能並肩作戰';
+  const peerFav = bz.fav.includes(selfEl) ? '比劫是喜用，同事是你的助力，適合團隊合作。' : bz.unfav.includes(selfEl) ? '比劫屬忌神，與同事合作時要講清楚分工與利益，避免金錢往來。' : '';
+  const p8 = `<b>與主管：</b>${bossType}。${bossFav}${bossExtra}紫微父母宮（也代表上司）為${fm.names}，${fm.tone > 0 ? '吉星較多，上司緣不錯，常遇到照顧你的長官' : fm.tone < 0 ? '煞星較多，和上司容易意見不合，宜多請示、少硬碰' : '吉煞參半，和上司的關係要看相處是否用心'}。</p>
+    <p><b>與同事：</b>${peerTxt}。${peerFav}紫微交友宮（同事、部屬）為${jy.names}，${jy.tone > 0 ? '人緣好，容易得到同事與部屬的支持' : jy.tone < 0 ? '同事部屬之間容易有是非或付出多回報少，交淺不宜言深' : '人際關係平穩，付出多少就收穫多少'}。`;
+
   // luck now
   let p5 = '';
   if (curYun) p5 += `目前走 <b>${curYun.gz}</b> 大運（${curYun.startYear}–${curYun.endYear}，${curYun.god}運），整體${RATE_TXT[curYun.rate]}。`;
@@ -760,6 +842,9 @@ function renderSummary() {
     <div class="card"><h3>事業方向<small>十神 × 官祿宮</small></h3><div class="prose"><p>${p2}</p></div></div>
     <div class="card"><h3>財運<small>財星 × 財帛宮</small></h3><div class="prose"><p>${p3}</p></div></div>
     <div class="card"><h3>感情婚姻<small>配偶星 × 夫妻宮</small></h3><div class="prose"><p>${p4}</p></div></div>
+    <div class="card"><h3>感情對象<small>年齡 · 相識場合 · 緣分年份</small></h3><div class="prose"><p>${p6}</p></div></div>
+    <div class="card"><h3>職場人際<small>官殺比劫 × 父母交友宮</small></h3><div class="prose"><p>${p8}</p></div></div>
+    <div class="card"><h3>投資方向<small>喜用五行 × 財星</small></h3><div class="prose"><p>${p7}</p></div></div>
   </div>
   <div class="card"><h3>近期運勢<small>${now}年 · 大運流年 × 大限流年</small></h3><div class="prose"><p>${p5}</p></div></div>
   <div class="card"><h3>開運建議<small>依喜用五行</small></h3>
