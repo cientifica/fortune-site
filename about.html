@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F7FB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1322" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root { --paper: #F5F7FB; --panel: #FFFFFF; --ink: #15203B; --muted: #5A6582; --line: #CCD4E6; --cobalt: #2343A6; --seal: #B5372B;
+  --f-display: "LXGW WenKai TC", "Kaiti TC", "STKaiti", "BiauKai", serif; --f-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --paper: #0D1322; --panel: #141B2E; --ink: #E5E9F4; --muted: #95A1BF; --line: #2A3555; --cobalt: #8FA7F4; --seal: #E2725F; color-scheme: dark; } }
+:root[data-theme="dark"] { --paper: #0D1322; --panel: #141B2E; --ink: #E5E9F4; --muted: #95A1BF; --line: #2A3555; --cobalt: #8FA7F4; --seal: #E2725F; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.85; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2 { font-family: var(--f-display); font-weight: 700; text-wrap: balance; }
+h1 { font-size: clamp(26px, 5vw, 36px); margin: 8px 0 4px; }
+h2 { font-size: 20px; margin: 28px 0 6px; color: var(--cobalt); }
+p, li { max-width: 68ch; }
+a { color: var(--cobalt); }
+.back { font-size: 14px; text-decoration: none; }
+.meta { color: var(--muted); font-size: 13px; }
+.site-links { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 16px; }
+</style>
+<title>關於本站｜算命PASS</title>
+<meta name="description" content="算命PASS 是結合八字四柱與紫微斗數的免費線上排盤網站。說明排盤方法、命理依據與使用須知。">
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="./">← 回到排盤</a>
+<h1>關於算命PASS</h1>
+
+<p>算命PASS 是一個免費的線上排盤網站，把<strong>八字四柱</strong>與<strong>紫微斗數</strong>兩套命理系統放在一起合參。只要輸入出生日期、時間與性別，就能同時看到兩種命盤，以及個性、事業、財運、感情與近期運勢的解讀。</p>
+
+<h2>為什麼要兩套一起看</h2>
+<p>八字以出生年、月、日、時的天干地支為本，看五行強弱與格局高低，擅長判斷一個人的根本體質與大方向。紫微斗數以星曜落在十二宮的位置論命，擅長描繪人生各領域的細節，例如父母、兄弟、夫妻、子女、財帛、官祿。兩者角度不同，互相對照，比只看一套更完整，也能看出哪些特質是兩邊都指向的重點。</p>
+
+<h2>八字怎麼排、怎麼論</h2>
+<p>八字以節氣換月，晚子時（23 點後）日柱仍算當日。論命方法以古籍為本：依《子平真詮》從月令取格局，再看天干地支的通根判斷日主強弱，並參考《滴天髓》等書的調候與從格之說，最後才用扶抑輔助判斷喜用神。網站也會列出藏干、十神、納音、十二長生、大運與流年。</p>
+
+<h2>紫微斗數怎麼排</h2>
+<p>紫微斗數依農曆生日與時辰安十四主星與輔星、生年四化，排出十二宮命盤，並標示大限與流年。點選宮位可看該宮的星曜解讀與三方四正。</p>
+
+<h2>使用須知</h2>
+<ul>
+<li>出生時間請填當地鐘錶時間。目前未做真太陽時校正，出生時間靠近時辰交界時，結果可能不同。</li>
+<li>排盤與解讀依傳統命理通則以規則計算整理，僅供參考與娛樂。健康、投資、婚姻等重大決定，請以實際情況與專業意見為準。</li>
+<li>你輸入的資料只在自己的瀏覽器中計算，不會上傳，詳見 <a href="privacy.html">隱私權政策</a>。</li>
+</ul>
+
+<h2>技術與致謝</h2>
+<p>曆法換算使用開源函式庫 <a href="https://github.com/6tail/lunar-javascript" rel="noopener">lunar-javascript</a>，紫微斗數排盤使用 <a href="https://github.com/SylarLong/iztro" rel="noopener">iztro</a>，感謝作者的貢獻。</p>
+
+<h2>聯絡我們</h2>
+<p>發現排盤錯誤或有任何建議，歡迎到 <a href="https://github.com/cientifica/fortune-site/issues">意見回報頁</a> 留言。</p>
+
+<nav class="site-links"><a href="./">排盤首頁</a><a href="about.html">關於本站</a><a href="privacy.html">隱私權政策</a><a href="https://github.com/cientifica/fortune-site/issues">意見回報</a></nav>
+</div>
+</body>
+</html>

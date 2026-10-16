@@ -181,6 +181,8 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
 .list li { padding-left: 14px; position: relative; }
 .list li::before { content: ""; position: absolute; left: 0; top: .75em; width: 6px; height: 6px; border-radius: 50%; background: var(--cobalt); }
 .foot-note { margin-top: 36px; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.foot-links { margin-top: 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.foot-links a { color: var(--cobalt); }
 
 @media (max-width: 640px) {
   body { font-size: 14.5px; }
@@ -284,6 +286,7 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
   <div id="result"></div>
 
   <p class="foot-note">排盤使用開源曆法函式庫 lunar-javascript 與紫微斗數函式庫 iztro 計算；八字以節氣換月、晚子時（23 點後）日柱仍算當日，未做真太陽時校正。格局依《子平真詮》月令取用，強弱以通根計算，並參考調候與從格；仍屬規則化推算，解讀文字依傳統命理通則整理，僅供參考與娛樂，重大決定請以實際情況與專業意見為準。</p>
+  <p class="foot-links"><a href="about.html">關於本站</a><a href="privacy.html">隱私權政策</a><a href="https://github.com/cientifica/fortune-site/issues">意見回報</a></p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/lunar.js"></script>
