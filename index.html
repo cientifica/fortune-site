@@ -706,6 +706,9 @@ function palaceTone(p) {
   const bad = all.filter((x) => BAD_STARS.includes(x.name) || x.mutagen === '忌').length;
   return { names: all.map((x) => x.name + (x.mutagen ? '化' + x.mutagen : '')).join('、') || '空宮', tone: good > bad ? 1 : bad > good ? -1 : 0 };
 }
+// 求學：印星主學業、食傷主才思；文昌貴人依日干查地支（三命通會）
+const WENCHANG = { 甲: '巳', 乙: '午', 丙: '申', 丁: '酉', 戊: '申', 己: '酉', 庚: '亥', 辛: '子', 壬: '寅', 癸: '卯' };
+const EL_STUDY = { 木: '文學、教育、醫藥、生物', 火: '資訊電子、傳播設計、化工', 土: '建築土木、地政、農學、管理', 金: '金融會計、法律、機械工程', 水: '外語、國貿觀光、資訊網路、物流' };
 // 投資方向：喜用五行對應產業（傳統五行分類），僅供參考
 const EL_INVEST = {
   木: '教育文創、出版紙業、醫藥生技、農林綠能、紡織',
@@ -852,6 +855,21 @@ function renderSummary() {
     <p><b>心境與生活：</b>紫微福德宮為${fd.names}，${fd.tone > 0 ? '心性開朗、懂得享福，退休後容易找到寄託' : fd.tone < 0 ? '容易想太多、操心勞碌，退休後宜培養興趣、多和朋友往來' : '心境平穩，生活簡單就感到滿足'}。${oldPal.length ? `56–75 歲依序走${oldPal.map((p) => `${p.name}宮（${p.decadal.range[0]}–${p.decadal.range[1]}）`).join('、')}大限，這段時間的重心在${oldPal.map((p) => `${p.name}（${PALACE[p.name] || ''}）`).join('與')}。` : ''}</p>
     <p><b>健康：</b>命局${elSpan(healthEl)}最弱，晚年宜多留意${EL_HINT[healthEl].body}；紫微疾厄宮為${jiT.names}，${jiT.tone < 0 ? '煞星較多，定期健康檢查更重要' : '整體體質尚可，維持規律作息即可'}。這是命理說法，不能取代醫療檢查。`;
 
+  // study years：印星、食傷、文昌；早年大運（25 歲前）；紫微官祿宮與昌曲化科
+  const yinN = godsN('正印', '偏印'), shiS = godsN('食神'), shangS = godsN('傷官');
+  const studyBase = yinN < 1 ? '印星不顯，不是靠死背型的學生，對有興趣的科目才肯下功夫，適合實作或技術導向的學習' : elTone(yinEl) >= 0 ? '印星有力又不為忌，學習吸收快、有長輩師長緣，讀書整體順利' : '印星屬忌神，學東西認真但容易想太多、給自己壓力，考試時要放鬆心情';
+  const brain = shangS > shiS && shangS >= 1 ? '傷官旺，聰明反應快、有自己的想法，不喜歡填鴨式教學，口才與創意突出' : shiS >= 1 ? '食神有力，個性溫和、有才藝，適合藝術、語言或需要耐心琢磨的科目' : '';
+  const caiYin = dad >= 3 && yinN >= 1 && dad > yinN * 2 ? '財星重於印星（財壞印），求學時期容易被玩樂、打工或其他事分心。' : '';
+  const wc = bz.cols.filter((c) => c.zhi === WENCHANG[bz.dm]).map((c) => c.key);
+  const youngYun = bz.dayun.filter((d) => d.startAge < 25);
+  const zwStudy = a.palaces.filter((p) => p.majorStars.concat(p.minorStars).some((x) => ['文昌', '文曲'].includes(x.name) || x.mutagen === '科') && ['命宮', '官祿', '父母', '遷移'].includes(p.name)).map((p) => p.name);
+  const gl = palaceTone(palaceByName('官祿'));
+  const youngPal = a.palaces.filter((p) => p.decadal.range[1] <= 30).sort((x, y) => x.decadal.range[0] - y.decadal.range[0]);
+  const p11 = `<b>讀書特質：</b>${studyBase}。${brain ? brain + '。' : ''}${caiYin}${wc.length ? `${wc.join('、')}帶文昌貴人，頭腦聰穎、文筆或表達好，考運不錯。` : ''}</p>
+    <p><b>早年運勢：</b>${youngYun.length ? `25 歲前的大運：${youngYun.map((d) => `${d.startAge}–${d.endAge}歲 ${d.gz}（${RATE_TXT[d.rate]}）`).join('、')}，` : ''}${(() => { const [y, m] = [bz.cols[0], bz.cols[1]]; const sc2 = [STEM_EL[y.gan], BRANCH_EL[y.zhi], STEM_EL[m.gan], BRANCH_EL[m.zhi]].reduce((t, e) => t + elTone(e), 0); return sc2 > 0 ? '年月柱五行對你有利，少年時期家庭支持足、學習環境好' : sc2 < 0 ? '年月柱五行偏忌，少年時期要多靠自己努力，越到後面越順' : '年月柱五行平和，求學環境平穩'; })()}。</p>
+    <p><b>紫微看學業：</b>官祿宮（也代表學業）為${gl.names}，${gl.tone > 0 ? '學業表現穩定，容易得到師長肯定' : gl.tone < 0 ? '學習過程起伏較大，宜找到適合自己的方法' : '成績表現看投入程度'}。${zwStudy.length ? `文昌、文曲或化科落在${zwStudy.join('、')}，有利考試與證照。` : ''}${youngPal.length ? `30 歲前依序走${youngPal.map((p) => p.name).join('、')}大限。` : ''}</p>
+    <p><b>適合的科系：</b>依喜用五行，可考慮${bz.fav.slice(0, 2).map((e) => `${elSpan(e)}：${EL_STUDY[e]}`).join('；')}。`;
+
   // luck now
   let p5 = '';
   if (curYun) p5 += `目前走 <b>${curYun.gz}</b> 大運（${curYun.startYear}–${curYun.endYear}，${curYun.god}運），整體${RATE_TXT[curYun.rate]}。`;
@@ -883,6 +901,7 @@ function renderSummary() {
     <div class="card"><h3>財運<small>財星 × 財帛宮</small></h3><div class="prose"><p>${p3}</p></div></div>
     <div class="card"><h3>感情婚姻<small>配偶星 × 夫妻宮</small></h3><div class="prose"><p>${p4}</p></div></div>
     <div class="card"><h3>感情對象<small>年齡 · 相識場合 · 緣分年份</small></h3><div class="prose"><p>${p6}</p></div></div>
+    <div class="card"><h3>求學時期<small>印星文昌 × 官祿宮昌曲</small></h3><div class="prose"><p>${p11}</p></div></div>
     <div class="card"><h3>父母子女<small>印財食傷官殺 × 父母子女宮</small></h3><div class="prose"><p>${p9}</p></div></div>
     <div class="card"><h3>晚年退休<small>時柱 × 晚年大運 × 福德宮</small></h3><div class="prose"><p>${p10}</p></div></div>
     <div class="card"><h3>職場人際<small>官殺比劫 × 父母交友宮</small></h3><div class="prose"><p>${p8}</p></div></div>
