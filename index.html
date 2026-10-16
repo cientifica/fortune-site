@@ -812,6 +812,28 @@ function renderSummary() {
   const p8 = `<b>與主管：</b>${bossType}。${bossFav}${bossExtra}紫微父母宮（也代表上司）為${fm.names}，${fm.tone > 0 ? '吉星較多，上司緣不錯，常遇到照顧你的長官' : fm.tone < 0 ? '煞星較多，和上司容易意見不合，宜多請示、少硬碰' : '吉煞參半，和上司的關係要看相處是否用心'}。</p>
     <p><b>與同事：</b>${peerTxt}。${peerFav}紫微交友宮（同事、部屬）為${jy.names}，${jy.tone > 0 ? '人緣好，容易得到同事與部屬的支持' : jy.tone < 0 ? '同事部屬之間容易有是非或付出多回報少，交淺不宜言深' : '人際關係平穩，付出多少就收穫多少'}。`;
 
+  // parents & children：正印為母、偏財為父，年月柱為父母宮；女命食傷、男命官殺為子女，時柱為子女宮
+  const godsN = (...ns) => ns.reduce((t, n) => t + (bz.gods[n] || 0), 0);
+  const yinEl = bz.groupEl('印'), caiElP = bz.groupEl('財');
+  const mom = godsN('正印', '偏印'), dad = godsN('偏財', '正財');
+  const elTone = (e) => (bz.fav.includes(e) ? 1 : bz.unfav.includes(e) ? -1 : 0);
+  const momTxt = mom < 1 ? '印星不顯，和母親的緣分較淡，或從小比較獨立、少依賴母親' : elTone(yinEl) > 0 ? '印星是喜用，母親是你的貴人，得到的照顧與支持多' : elTone(yinEl) < 0 ? '印星屬忌神，母親關心多但容易變成管束，相處需要拿捏距離' : '印星平和，和母親的關係穩定';
+  const dadTxt = dad < 1 ? '財星不顯，和父親的互動較少，或父親較忙碌、常不在身邊' : elTone(caiElP) > 0 ? '財星是喜用，父親能給你實際的幫助，經濟上多有支援' : elTone(caiElP) < 0 ? '財星屬忌神，和父親觀念不同的時候多，宜多溝通' : '財星平和，和父親的關係平穩';
+  const caiPoYin = dad >= 3 && mom >= 1 && dad > mom * 2 ? '命中財星重而印星輕（財壞印），父母之間意見常不一致，你容易夾在中間。' : '';
+  const ymRel = bz.rel.find((r) => r.s.startsWith('年月支') && r.t === '沖') ? '年月柱相沖，早年家中變動較多，或較早離家發展。' : bz.rel.find((r) => r.s.startsWith('月日支') && r.t === '沖') ? '月柱與日柱相沖，和父母的觀念有落差，成年後各自生活反而相處更好。' : '';
+  const fmT = palaceTone(palaceByName('父母'));
+  const kidGroup = g === '女' ? '食傷' : '官殺';
+  const kidEl = bz.groupEl(kidGroup);
+  const kids = bz.groups[kidGroup] || 0;
+  const shiGod = tenGod(bz.dm, bz.cols[3].gan);
+  const kidTxt = kids < 1 ? `子女星（${g === '女' ? '食傷' : '官殺'}）不顯，子女緣較晚，或孩子較獨立、與你各有天地` : elTone(kidEl) > 0 ? `子女星（${g === '女' ? '食傷' : '官殺'}）是喜用，孩子貼心，日後能成為你的助力` : elTone(kidEl) < 0 ? `子女星（${g === '女' ? '食傷' : '官殺'}）屬忌神，養育過程比較操心，需要多花心力陪伴` : `子女星（${g === '女' ? '食傷' : '官殺'}）平和，親子關係穩定`;
+  const xiaoDuo = g === '女' && (bz.gods.偏印 || 0) >= 2 && (bz.gods.食神 || 0) > 0 ? '命中偏印剋食神（梟神奪食），懷孕生產宜多注意身體調養。' : '';
+  const shangGuan = g === '男' && godsN('食神', '傷官') >= 3 && kids >= 1 ? '食傷較重會剋制官殺，教養上宜多鼓勵、少用嚴厲方式。' : '';
+  const shiChong = CHONG[bz.cols[3].zhi] === bz.cols[2].zhi ? '日時支相沖，和子女個性差異大，孩子長大後可能較早離家或在外地發展。' : '';
+  const znT = palaceTone(palaceByName('子女'));
+  const p9 = `<b>父母：</b>${momTxt}；${dadTxt}。${caiPoYin}${ymRel}紫微父母宮為${fmT.names}，${fmT.tone > 0 ? '吉星較多，父母照顧周到，家庭背景給你不少支持' : fmT.tone < 0 ? '煞星較多，和父母容易有代溝，或父母身體需要多關心' : '吉煞參半，和父母的關係平淡中有溫情'}。</p>
+    <p><b>子女：</b>${kidTxt}。時柱（子女宮）天干為${shiGod}，${{ 食神: '孩子性情溫和、有才藝', 傷官: '孩子聰明有主見、個性鮮明', 正官: '孩子守規矩、懂事', 七殺: '孩子個性剛強、有魄力', 正財: '孩子務實、會打理生活', 偏財: '孩子活潑大方、人緣好', 正印: '孩子孝順、愛讀書', 偏印: '孩子想法獨特、喜歡獨處', 比肩: '孩子獨立、和你像朋友', 劫財: '孩子好勝、精力旺盛' }[shiGod]}。${xiaoDuo}${shangGuan}${shiChong}紫微子女宮為${znT.names}，${znT.tone > 0 ? '子女緣佳，孩子懂事貼心' : znT.tone < 0 ? '和子女溝通需要多些耐心，教養上宜以身作則' : '親子關係平穩，付出陪伴就有回報'}。`;
+
   // luck now
   let p5 = '';
   if (curYun) p5 += `目前走 <b>${curYun.gz}</b> 大運（${curYun.startYear}–${curYun.endYear}，${curYun.god}運），整體${RATE_TXT[curYun.rate]}。`;
@@ -843,6 +865,7 @@ function renderSummary() {
     <div class="card"><h3>財運<small>財星 × 財帛宮</small></h3><div class="prose"><p>${p3}</p></div></div>
     <div class="card"><h3>感情婚姻<small>配偶星 × 夫妻宮</small></h3><div class="prose"><p>${p4}</p></div></div>
     <div class="card"><h3>感情對象<small>年齡 · 相識場合 · 緣分年份</small></h3><div class="prose"><p>${p6}</p></div></div>
+    <div class="card"><h3>父母子女<small>印財食傷官殺 × 父母子女宮</small></h3><div class="prose"><p>${p9}</p></div></div>
     <div class="card"><h3>職場人際<small>官殺比劫 × 父母交友宮</small></h3><div class="prose"><p>${p8}</p></div></div>
     <div class="card"><h3>投資方向<small>喜用五行 × 財星</small></h3><div class="prose"><p>${p7}</p></div></div>
   </div>
