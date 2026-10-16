@@ -834,6 +834,24 @@ function renderSummary() {
   const p9 = `<b>父母：</b>${momTxt}；${dadTxt}。${caiPoYin}${ymRel}紫微父母宮為${fmT.names}，${fmT.tone > 0 ? '吉星較多，父母照顧周到，家庭背景給你不少支持' : fmT.tone < 0 ? '煞星較多，和父母容易有代溝，或父母身體需要多關心' : '吉煞參半，和父母的關係平淡中有溫情'}。</p>
     <p><b>子女：</b>${kidTxt}。時柱（子女宮）天干為${shiGod}，${{ 食神: '孩子性情溫和、有才藝', 傷官: '孩子聰明有主見、個性鮮明', 正官: '孩子守規矩、懂事', 七殺: '孩子個性剛強、有魄力', 正財: '孩子務實、會打理生活', 偏財: '孩子活潑大方、人緣好', 正印: '孩子孝順、愛讀書', 偏印: '孩子想法獨特、喜歡獨處', 比肩: '孩子獨立、和你像朋友', 劫財: '孩子好勝、精力旺盛' }[shiGod]}。${xiaoDuo}${shangGuan}${shiChong}紫微子女宮為${znT.names}，${znT.tone > 0 ? '子女緣佳，孩子懂事貼心' : znT.tone < 0 ? '和子女溝通需要多些耐心，教養上宜以身作則' : '親子關係平穩，付出陪伴就有回報'}。`;
 
+  // old age & retirement：時柱主晚年，看 55 歲後大運；紫微看福德宮（晚年心境）與 56–75 歲所行大限
+  const sc = bz.cols[3];
+  const shiEls = [STEM_EL[sc.gan], BRANCH_EL[sc.zhi]];
+  const shiScore = shiEls.reduce((t, e) => t + elTone(e), 0);
+  const shiTxt = shiScore > 0 ? '時柱五行對你有利，晚景比年輕時順遂，愈老愈有福' : shiScore < 0 ? '時柱五行偏忌，晚年要多為健康與財務提早準備，退休後步調宜放慢' : '時柱五行平和，晚年生活安穩，平淡中有餘裕';
+  const oldYun = bz.dayun.filter((d) => d.startAge >= 50).slice(0, 3);
+  const yunTxt = oldYun.map((d) => `${d.startAge}–${d.endAge}歲 ${d.gz}（${RATE_TXT[d.rate]}）`).join('、');
+  const ups = oldYun.filter((d) => d.rate === 'up').length, downs = oldYun.filter((d) => d.rate === 'down').length;
+  const shiCai = GOD_GROUP[tenGod(bz.dm, sc.gan)] === '財' || GOD_GROUP[tenGod(bz.dm, sc.hide[0])] === '財';
+  const moneyOld = (bz.luAt.includes('時柱') ? '祿神落在時柱，晚年衣食無缺。' : '') + (bz.kuAt.includes('時柱') ? '財庫在時柱，晚年有積蓄可用。' : '') + (shiCai && !bz.luAt.includes('時柱') ? '時柱見財星，退休後仍有收入來源，例如租金、投資或兼職。' : '');
+  const fd = palaceTone(palaceByName('福德'));
+  const oldPal = a.palaces.filter((p) => p.decadal.range[0] >= 56 && p.decadal.range[0] <= 75).sort((x, y) => x.decadal.range[0] - y.decadal.range[0]);
+  const jiT = palaceTone(palaceByName('疾厄'));
+  const healthEl = EL.slice().sort((x, y) => bz.score[x] - bz.score[y])[0];
+  const p10 = `<b>晚年整體：</b>時柱為${sc.gan}${sc.zhi}，${shiTxt}。${moneyOld}50 歲以後的大運：${yunTxt}${ups > downs ? '，整體偏順，退休後仍適合發揮專長或做喜歡的事' : downs > ups ? '，有幾步運較辛苦，退休規劃宜保守、預留緩衝' : '，起伏不大，按部就班即可'}。</p>
+    <p><b>心境與生活：</b>紫微福德宮為${fd.names}，${fd.tone > 0 ? '心性開朗、懂得享福，退休後容易找到寄託' : fd.tone < 0 ? '容易想太多、操心勞碌，退休後宜培養興趣、多和朋友往來' : '心境平穩，生活簡單就感到滿足'}。${oldPal.length ? `56–75 歲依序走${oldPal.map((p) => `${p.name}宮（${p.decadal.range[0]}–${p.decadal.range[1]}）`).join('、')}大限，這段時間的重心在${oldPal.map((p) => `${p.name}（${PALACE[p.name] || ''}）`).join('與')}。` : ''}</p>
+    <p><b>健康：</b>命局${elSpan(healthEl)}最弱，晚年宜多留意${EL_HINT[healthEl].body}；紫微疾厄宮為${jiT.names}，${jiT.tone < 0 ? '煞星較多，定期健康檢查更重要' : '整體體質尚可，維持規律作息即可'}。這是命理說法，不能取代醫療檢查。`;
+
   // luck now
   let p5 = '';
   if (curYun) p5 += `目前走 <b>${curYun.gz}</b> 大運（${curYun.startYear}–${curYun.endYear}，${curYun.god}運），整體${RATE_TXT[curYun.rate]}。`;
@@ -866,6 +884,7 @@ function renderSummary() {
     <div class="card"><h3>感情婚姻<small>配偶星 × 夫妻宮</small></h3><div class="prose"><p>${p4}</p></div></div>
     <div class="card"><h3>感情對象<small>年齡 · 相識場合 · 緣分年份</small></h3><div class="prose"><p>${p6}</p></div></div>
     <div class="card"><h3>父母子女<small>印財食傷官殺 × 父母子女宮</small></h3><div class="prose"><p>${p9}</p></div></div>
+    <div class="card"><h3>晚年退休<small>時柱 × 晚年大運 × 福德宮</small></h3><div class="prose"><p>${p10}</p></div></div>
     <div class="card"><h3>職場人際<small>官殺比劫 × 父母交友宮</small></h3><div class="prose"><p>${p8}</p></div></div>
     <div class="card"><h3>投資方向<small>喜用五行 × 財星</small></h3><div class="prose"><p>${p7}</p></div></div>
   </div>
