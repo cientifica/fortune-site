@@ -73,6 +73,9 @@ button, input, select { font: inherit; color: inherit; }
 .field input[type=text], .field input[type=date], .field input[type=time], .field input[type=number], .field select {
   height: 40px; border: 1px solid var(--line); border-radius: 6px; padding: 0 10px; background: var(--paper); min-width: 0; }
 #nameIn { width: 11em; }
+.timepick { display: flex; align-items: center; gap: 6px; }
+.timepick select { width: 5.2em; }
+.timepick span { font-size: 14px; color: var(--muted); }
 #lyIn { width: 6.5em; } #lmIn, #ldIn { width: 4.5em; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; height: 40px; }
 .seg label { display: grid; place-items: center; padding: 0 14px; cursor: pointer; border-right: 1px solid var(--line); }
@@ -186,7 +189,8 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
   .form { padding: 14px 12px; }
   .row { gap: 12px; }
   .row > .field, .row > .row { flex: 1 1 auto; }
-  #nameIn, #dateIn, #timeIn { width: 100%; }
+  #nameIn, #dateIn { width: 100%; }
+  .timepick select { flex: 1 1 0; width: auto; }
   #solarBox, #solarBox .field { flex: 1 1 100%; }
   .go { flex: 1 1 100%; }
   .seg { display: flex; width: 100%; }
@@ -269,7 +273,7 @@ table.pillars { border-collapse: collapse; width: 100%; min-width: 440px; text-a
         <label class="field"><span>日</span><input type="number" id="ldIn" min="1" max="30" inputmode="numeric"></label>
         <label class="check"><input type="checkbox" id="leapIn">閏月</label>
       </div>
-      <label class="field"><span>出生時間</span><input type="time" id="timeIn" required></label>
+      <div class="field"><span id="timeLbl">出生時間</span><div class="timepick" role="group" aria-labelledby="timeLbl"><select id="hourIn" aria-label="時"></select><span>時</span><select id="minIn" aria-label="分"></select><span>分</span></div><input type="hidden" id="timeIn"></div>
       <div class="shichen" id="shichen"></div>
       <button class="go" type="submit">排盤</button>
     </div>
@@ -944,6 +948,11 @@ function readForm() {
   }
   return { name: $('#nameIn').value.trim(), gender, cal, time, solar, tIdx: timeIndex(hh) };
 }
+const pad2 = (n) => String(n).padStart(2, '0');
+$('#hourIn').innerHTML = '<option value="">--</option>' + Array.from({ length: 24 }, (_, h) => `<option value="${pad2(h)}">${pad2(h)}</option>`).join('');
+$('#minIn').innerHTML = Array.from({ length: 60 }, (_, m) => `<option value="${pad2(m)}">${pad2(m)}</option>`).join('');
+function syncTime() { const h = $('#hourIn').value; $('#timeIn').value = h ? `${h}:${$('#minIn').value}` : ''; updateShichen(); }
+function setTime(v) { const [h, m] = (v || '').split(':'); $('#hourIn').value = h || ''; $('#minIn').value = m || '00'; syncTime(); }
 function updateShichen() {
   const v = $('#timeIn').value; if (!v) { $('#shichen').textContent = ''; return; }
   const i = timeIndex(+v.split(':')[0]);
@@ -962,7 +971,7 @@ $('#form').addEventListener('submit', (e) => {
   } catch (x) { err.textContent = x.message || '排盤失敗，請檢查輸入。'; err.hidden = false; }
 });
 document.querySelectorAll('input[name=cal]').forEach((r) => r.addEventListener('change', syncCal));
-$('#timeIn').addEventListener('input', updateShichen);
+['#hourIn', '#minIn'].forEach((id) => $(id).addEventListener('change', syncTime));
 
 function boot() {
   if (typeof Solar === 'undefined' || typeof iztro === 'undefined') {
@@ -973,12 +982,12 @@ function boot() {
     $('#nameIn').value = last.name || ''; (last.gender === '女' ? $('#gF') : $('#gM')).checked = true;
     (last.cal === 'lunar' ? $('#calL') : $('#calS')).checked = true;
     $('#dateIn').value = last.date || ''; $('#lyIn').value = last.ly || ''; $('#lmIn').value = last.lm || ''; $('#ldIn').value = last.ld || '';
-    $('#leapIn').checked = !!last.leap; $('#timeIn').value = last.time || '';
+    $('#leapIn').checked = !!last.leap; setTime(last.time);
     syncCal(); updateShichen();
     try { render(readForm(), false); return; } catch (e) {}
   }
   // sample chart so the page opens in a working state
-  $('#dateIn').value = '1990-05-15'; $('#timeIn').value = '14:30'; syncCal(); updateShichen();
+  $('#dateIn').value = '1990-05-15'; setTime('14:30'); syncCal(); updateShichen();
   render(readForm(), true);
 }
 boot();
