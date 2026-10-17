@@ -682,10 +682,43 @@ function setTab(name) {
 const GOOD_STARS = ['紫微', '天府', '天梁', '太陽', '天相', '天同', '太陰', '左輔', '右弼', '天魁', '天鉞', '祿存'];
 const BAD_STARS = ['擎羊', '陀羅', '火星', '鈴星', '地空', '地劫', '七殺', '破軍', '巨門'];
 function palaceTone(p) {
+  // 主星吉凶 + 廟旺/落陷 + 四化（化忌加重），煞星扣分
   const b = borrowed(p); const all = b.stars.concat(p.minorStars);
-  const good = all.filter((x) => GOOD_STARS.includes(x.name) || ['祿', '權', '科'].includes(x.mutagen)).length;
-  const bad = all.filter((x) => BAD_STARS.includes(x.name) || x.mutagen === '忌').length;
-  return { names: all.map((x) => x.name + (x.mutagen ? '化' + x.mutagen : '')).join('、') || '空宮', tone: good > bad ? 1 : bad > good ? -1 : 0 };
+  let score = 0;
+  for (const x of all) {
+    if (GOOD_STARS.includes(x.name)) score += 1;
+    if (BAD_STARS.includes(x.name)) score -= 1;
+    if (x.type === 'major') score += ({ 廟: 1, 旺: 1, 不: -1, 陷: -1 })[x.brightness] || 0;
+    if (['祿', '權', '科'].includes(x.mutagen)) score += 1;
+    if (x.mutagen === '忌') score -= 2;
+  }
+  return { names: all.map((x) => x.name + (x.type === 'major' && x.brightness ? '(' + x.brightness + ')' : '') + (x.mutagen ? '化' + x.mutagen : '')).join('、') || '空宮', tone: score > 0 ? 1 : score < 0 ? -1 : 0, borrowed: b.borrowed, stars: b.stars };
+}
+// 福德宮主星的一般論法
+const FUDE_STAR = {
+  紫微: '重視品味與尊嚴，懂得享受', 天機: '心思多、閒不下來，喜歡動腦', 太陽: '熱心付出，忙中找樂趣', 武曲: '務實、勞心勞力，享福較晚',
+  天同: '福星坐守，知足隨和、懂得享福', 廉貞: '心思複雜，情緒起伏較大', 天府: '安穩知足，有積蓄觀念', 太陰: '細膩重感受，喜歡清靜',
+  貪狼: '興趣嗜好多，欲望與追求較強', 巨門: '容易多疑多慮，想得比做得多', 天相: '平和安穩，衣食無缺', 天梁: '清高有原則，晚年有福蔭',
+  七殺: '勞碌奔波、閒不下來', 破軍: '心性不定，喜歡變化',
+};
+const FUDE_MUT = { 祿: '化祿增添福氣與享受', 權: '化權讓人主觀、凡事想自己掌握', 科: '化科讓心境清朗、理性', 忌: '化忌主心結難解、容易自尋煩惱' };
+function fudeText(p) {
+  const t = palaceTone(p);
+  const bits = t.stars.map((x) => {
+    let s = x.name + (x.brightness ? `（${x.brightness}）` : '') + FUDE_STAR[x.name];
+    if (x.brightness === '陷' || x.brightness === '不') s += '，星曜力弱，負面特質較明顯';
+    if (x.mutagen) s += '；' + FUDE_MUT[x.mutagen];
+    return s;
+  });
+  const sha = p.minorStars.filter((x) => BAD_STARS.includes(x.name)).map((x) => x.name);
+  const helpers = p.minorStars.filter((x) => GOOD_STARS.includes(x.name)).map((x) => x.name);
+  const minorMut = p.minorStars.filter((x) => x.mutagen).map((x) => x.name + FUDE_MUT[x.mutagen]);
+  let txt = (t.borrowed ? '福德宮無主星，借對宮' : '') + bits.join('；') + '。';
+  if (minorMut.length) txt += minorMut.join('；') + '。';
+  if (sha.length) txt += `會${sha.join('、')}，心情較易急躁不安。`;
+  if (helpers.length) txt += `有${helpers.join('、')}相助，遇事較有人幫忙化解。`;
+  txt += t.tone > 0 ? '整體福德較厚，退休後容易找到寄託、享受生活。' : t.tone < 0 ? '整體心境較勞碌，退休後宜培養固定興趣、多和朋友往來，避免鑽牛角尖。' : '整體吉凶參半，心境好壞多看自己調適。';
+  return { txt, tone: t.tone, names: t.names };
 }
 const GU = '<span class="src gu" title="依《子平真詮》《淵海子平》">古籍</span>';
 const ZW = '<span class="src zw" title="紫微斗數宮位星曜的一般論法">紫微</span>';
@@ -807,10 +840,12 @@ function renderSummary() {
   const yunTxt = oldYun.map((d) => `${d.startAge}–${d.endAge}歲 ${d.gz}（${RATE_TXT[d.rate]}）`).join('、');
   const ups = oldYun.filter((d) => d.rate === 'up').length, downs = oldYun.filter((d) => d.rate === 'down').length;
   const moneyOld = (bz.luAt.includes('時柱') ? '祿神落在時柱，《三命通會》以福氣「聚於時上」為吉，晚年衣食無缺。' : '');
-  const fd = palaceTone(palaceByName('福德'));
+  const fd = fudeText(palaceByName('福德'));
+  const guTone = Math.sign(Math.sign(shiScore) + Math.sign(ups - downs));
   const oldPal = a.palaces.filter((p) => p.decadal.range[0] >= 56 && p.decadal.range[0] <= 75).sort((x, y) => x.decadal.range[0] - y.decadal.range[0]);
   const p10 = `${GU}<b>晚年整體：</b>日柱${bz.cols[2].gan}${bz.cols[2].zhi}、時柱${sc.gan}${sc.zhi}，${shiTxt}。${moneyOld}50 歲以後的大運：${yunTxt}${ups > downs ? '，整體偏順' : downs > ups ? '，有幾步運較辛苦' : '，起伏不大'}。</p>
-    <p>${ZW}<b>心境與生活：</b>紫微福德宮為${fd.names}，${fd.tone > 0 ? '心性開朗、懂得享福，退休後容易找到寄託' : fd.tone < 0 ? '容易想太多、操心勞碌，退休後宜培養興趣、多和朋友往來' : '心境平穩，生活簡單就感到滿足'}。${oldPal.length ? `56–75 歲依序走${oldPal.map((p) => `${p.name}宮（${p.decadal.range[0]}–${p.decadal.range[1]}）`).join('、')}大限，這段時間的重心在${oldPal.map((p) => `${p.name}（${PALACE[p.name] || ''}）`).join('與')}。` : ''}`;
+    <p>${ZW}<b>心境與生活：</b>${fd.txt}${oldPal.length ? `56–75 歲依序走${oldPal.map((p) => `${p.name}宮（${p.decadal.range[0]}–${p.decadal.range[1]}）`).join('、')}大限，這段時間的重心在${oldPal.map((p) => `${p.name}（${PALACE[p.name] || ''}）`).join('與')}。` : ''}</p>
+    <p><b>兩者合看：</b>${guTone === fd.tone ? (guTone < 0 ? '八字和紫微方向一致，晚年都偏辛苦，宜及早規劃退休、照顧好心情。' : guTone > 0 ? '八字和紫微方向一致，晚年整體偏順。' : '八字和紫微都顯示晚年平穩，起伏不大。') : '八字和紫微看的面向不同：八字日時與大運看的是後半世的環境與運勢起落，紫微福德宮看的是內在心境與享福能力。' + `所以是${guTone < 0 ? '外在環境較辛苦' : guTone > 0 ? '外在條件不差' : '外在環境平穩'}，${fd.tone < 0 ? '但心裡容易操煩，晚年的課題在放寬心' : fd.tone > 0 ? '心態上能自得其樂' : '心境好壞要看自己調適'}。`}`;
 
   // 求學：三命通會〈論學堂詞館〉、滴天髓〈出身〉〈貞元〉；紫微官祿宮與昌曲化科
   const youngYun = bz.dayun.filter((d) => d.startAge < 25);
