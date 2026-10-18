@@ -829,7 +829,7 @@ function renderSummary() {
   const znT = palaceTone(palaceByName('子女'));
   const p9 = `${GU}<b>父母：</b>${momTxt}；${dadTxt}。${ymTxt}${caiPoYin}${chongTxt}</p>
     <p>${ZW}<b>紫微父母宮：</b>${fmT.names}，${fmT.tone > 0 ? '宮內吉星或化祿權科較多，紫微論為父母緣較深、得長輩助力' : fmT.tone < 0 ? '宮內有化忌、落陷或煞星，紫微論為與父母緣分較薄，或早年家中較有波折' : '吉凶參半，和父母的緣分平平'}。</p>
-    <p>${GU}<b>子女：</b>${kidTxt}。${bz.strong && nYin < 1 && nShang >= 1 ? '日主旺、無印、有食傷，《滴天髓．子女》任氏注說「子必多」。' : bz.strong && nYin >= 2 && nShang < 1 ? '日主旺、印重、食傷輕，《滴天髓．子女》任氏注說「子必少」。' : !bz.strong && nShang >= 3 ? '日主弱、食傷重，《滴天髓．子女》任氏注論為子息較少。' : !bz.strong && nGuan >= 3 && nYin < 1 && nBi < 1.5 ? '日主弱、官殺重、無印比，《滴天髓．子女》任氏注論為子息難得。' : ''}${xiaoDuo}${shangGuan}${shiChong}</p>
+    <p>${GU}<b>子女：</b>${kidTxt}。${bz.strong && nYin < 1 && nShang >= 1 ? '日主旺、無印、有食傷，《滴天髓．子女》任氏注說「子必多」。' : bz.strong && nYin >= 2 && nShang < 1 ? '日主旺、印重、食傷輕，《滴天髓．子女》任氏注說「子必少」。' : !bz.strong && nYin >= 1 && nShang < 1 ? '日主弱、有印、無食傷，《滴天髓．子女》任氏注說「子必多」。' : !bz.strong && nShang >= 3 && nYin < 1 ? '日主弱、食傷重、無印，《滴天髓．子女》任氏注論為子息難得。' : !bz.strong && nShang >= 3 ? '日主弱、印輕、食傷重，《滴天髓．子女》任氏注說「子必少」。不過任氏書中「多子」的例子是一連生十六子，這裡的多少是古代標準，他也說「命理不可執一」。' : !bz.strong && nGuan >= 3 && nYin < 1 && nBi < 1.5 ? '日主弱、官殺重、無印比，《滴天髓．子女》任氏注論為子息難得。' : ''}${xiaoDuo}${shangGuan}${shiChong}</p>
     <p>${ZW}<b>紫微子女宮：</b>${znT.names}，${znT.tone > 0 ? '宮內吉星或化祿權科較多，紫微論為與子女緣分較深，子女日後較有能力；至於個性是否貼心，宮位看不出來' : znT.tone < 0 ? '宮內有化忌、落陷或煞星，紫微論為與子女之間較需磨合，為子女操心較多' : '吉凶參半，親子緣分看彼此經營'}。`;
 
   // 晚年：滴天髓〈貞元〉日時主後半世；紫微福德宮與晚年大限
