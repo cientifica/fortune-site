@@ -844,7 +844,7 @@ function renderSummary() {
   const guTone = Math.sign(Math.sign(shiScore) + Math.sign(ups - downs));
   const oldPal = a.palaces.filter((p) => p.decadal.range[0] >= 56 && p.decadal.range[0] <= 75).sort((x, y) => x.decadal.range[0] - y.decadal.range[0]);
   const p10 = `${GU}<b>晚年整體：</b>日柱${bz.cols[2].gan}${bz.cols[2].zhi}、時柱${sc.gan}${sc.zhi}，${shiTxt}。${moneyOld}50 歲以後的大運：${yunTxt}${ups > downs ? '，整體偏順' : downs > ups ? '，有幾步運較辛苦' : '，起伏不大'}。</p>
-    <p>${ZW}<b>心境與生活：</b>${fd.txt}${oldPal.length ? `56–75 歲依序走${oldPal.map((p) => `${p.name}宮（${p.decadal.range[0]}–${p.decadal.range[1]}）`).join('、')}大限，這段時間的重心在${oldPal.map((p) => `${p.name}（${PALACE[p.name] || ''}）`).join('與')}。` : ''}</p>
+    <p>${ZW}<b>心境與生活：</b>${fd.txt}${oldPal.length ? `56–75 歲的大限依序在${oldPal.map((p) => `本命${p.name}宮（${p.decadal.range[0]}–${p.decadal.range[1]}）`).join('、')}，這幾個大限命宮的星曜：${oldPal.map((p) => { const t = palaceTone(p); return `${p.name}宮位置${t.borrowed ? '借對宮' : ''}${t.names}（${t.tone > 0 ? '較順' : t.tone < 0 ? '較辛苦' : '平'}）`; }).join('；')}。` : ''}</p>
     <p><b>兩者合看：</b>${guTone === fd.tone ? (guTone < 0 ? '八字和紫微方向一致，晚年都偏辛苦，宜及早規劃退休、照顧好心情。' : guTone > 0 ? '八字和紫微方向一致，晚年整體偏順。' : '八字和紫微都顯示晚年平穩，起伏不大。') : '八字和紫微看的面向不同：八字日時與大運看的是後半世的環境與運勢起落，紫微福德宮看的是內在心境與享福能力。' + `所以是${guTone < 0 ? '外在環境較辛苦' : guTone > 0 ? '外在條件不差' : '外在環境平穩'}，${fd.tone < 0 ? '但心裡容易操煩，晚年的課題在放寬心' : fd.tone > 0 ? '心態上能自得其樂' : '心境好壞要看自己調適'}。`}`;
 
   // 求學：三命通會〈論學堂詞館〉、滴天髓〈出身〉〈貞元〉；紫微官祿宮與昌曲化科
@@ -860,14 +860,22 @@ function renderSummary() {
     <p>${ZW}<b>紫微看學業：</b>官祿宮（也代表學業）為${gl.names}，${gl.tone > 0 ? '學業表現穩定，容易得到師長肯定' : gl.tone < 0 ? '學習過程起伏較大，宜找到適合自己的方法' : '成績表現看投入程度'}。${zwStudy.length ? `文昌、文曲或化科落在${zwStudy.join('、')}，有利考試與證照。` : ''}${youngPal.length ? `30 歲前依序走${youngPal.map((p) => p.name).join('、')}大限。` : ''}`;
 
   // luck now
-  let p5 = '';
+  let p5 = GU;
   if (curYun) p5 += `目前走 <b>${curYun.gz}</b> 大運（${curYun.startYear}–${curYun.endYear}，${curYun.god}運），整體${RATE_TXT[curYun.rate]}。`;
   p5 += `${now}年為${yGZ}年，流年天干為${tenGod(bz.dm, yGZ[0])}，對你的命局而言${yRate === 'up' ? '五行偏有利，適合推進計畫' : yRate === 'down' ? '五行較不利，宜穩紮穩打、避免冒進' : '影響中性，按部就班即可'}。`;
   if (zw.h) {
+    // 大限、流年各以其命宮星曜論吉凶，四化看化入本命哪一宮
     const dp = a.palaces[zw.h.decadal.index]; const yp = a.palaces[zw.h.yearly.index];
-    const ji = zw.h.yearly.mutagen[3]; const jiP = a.palaces.find((p) => p.majorStars.concat(p.minorStars).some((s) => s.name === ji));
-    const lu = zw.h.yearly.mutagen[0]; const luP = a.palaces.find((p) => p.majorStars.concat(p.minorStars).some((s) => s.name === lu));
-    p5 += `紫微方面，大限走到本命<b>${dp.name}</b>，這十年的重心偏向${PALACE[dp.name] || dp.name}；流年命宮落在本命<b>${yp.name}</b>。今年${lu}化祿${luP ? '入' + luP.name + '，' + (PALACE[luP.name] || '') + '方面較有機會' : ''}，${ji}化忌${jiP ? '入' + jiP.name + '，' + (PALACE[jiP.name] || '') + '需要多用心' : ''}。`;
+    const dT = palaceTone(dp), yT = palaceTone(yp);
+    const findP = (n) => a.palaces.find((p) => p.majorStars.concat(p.minorStars).some((x) => x.name === n));
+    const hua = (m) => {
+      const lu = findP(m[0]), ji = findP(m[3]);
+      return `${m[0]}化祿${lu ? `入本命${lu.name}宮（${PALACE[lu.name] || ''}），這方面較有收穫` : ''}；${m[3]}化忌${ji ? `入本命${ji.name}宮（${PALACE[ji.name] || ''}），這方面容易有阻礙或掛心` : ''}`;
+    };
+    const toneTxt = (t) => t.tone > 0 ? '吉星或化祿權科較多，整體較順' : t.tone < 0 ? '有化忌、落陷或煞星，整體較辛苦，凡事多留餘地' : '吉凶參半，好壞看自己經營';
+    p5 += `</p>
+    <p>${ZW}<b>大限：</b>這十年的大限命宮在本命${dp.name}宮的位置，${dT.borrowed ? '無主星，借對宮' : '坐'}${dT.names}，${toneTxt(dT)}。大限${zw.h.decadal.heavenlyStem}干四化：${hua(zw.h.decadal.mutagen)}。</p>
+    <p>${ZW}<b>流年：</b>今年流年命宮在本命${yp.name}宮的位置，${yT.borrowed ? '無主星，借對宮' : '坐'}${yT.names}，${toneTxt(yT)}。流年${zw.h.yearly.heavenlyStem}干四化：${hua(zw.h.yearly.mutagen)}。`;
   }
 
 
