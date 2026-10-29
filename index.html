@@ -632,6 +632,18 @@ function rateGZ(gz, fav, unfav, kind, mz) {
   return s >= 0.8 ? 'up' : s <= -1.2 ? 'down' : 'flat';
 }
 const RATE_TXT = { up: '順', flat: '平', down: '需留意' };
+// 子平真詮〈論正官取運〉：「若官露而不可逢合，不可雜煞，不可重官」
+function guanCheck(bz, gz) {
+  if (bz.special || bz.ge !== '正官格') return '';
+  const guan = [0, 1, 3].map((i) => bz.cols[i].gan).find((g) => tenGod(bz.dm, g) === '正官');
+  if (!guan) return '';
+  const god = tenGod(bz.dm, gz[0]);
+  if (god === '正官') return `重官：命局正官${guan}已透，又逢${gz[0]}正官，《子平真詮．論正官取運》說官露「不可重官」，書中也說「正官運又遇官則重」`;
+  if (god === '七殺') return `雜煞：命局正官${guan}已透，又逢${gz[0]}七殺，《子平真詮》說官露「不可雜煞」`;
+  if (GANHE[gz[0]] === guan) return `逢合：${gz[0]}合住命局正官${guan}，《子平真詮》說官露「不可逢合」`;
+  return '';
+}
+function rateFull(bz, gz, kind) { return guanCheck(bz, gz) ? 'down' : rateGZ(gz, bz.fav, bz.unfav, kind, bz.mz); }
 function yearGZ(y) { return STEMS[((y - 4) % 10 + 10) % 10] + BRANCHES[((y - 4) % 12 + 12) % 12]; }
 
 function computeZiwei(solar, tIdx, gender) {
@@ -648,6 +660,7 @@ try { tab = localStorage.getItem('fortune.tab') || 'all'; } catch (e) {}
 function render(input, sample) {
   const solar = input.solar;
   const bz = computeBazi(solar, input.gender);
+  bz.dayun.forEach((d) => { if (guanCheck(bz, d.gz)) d.rate = 'down'; });
   const zw = computeZiwei(solar, input.tIdx, input.gender);
   state = { input, bz, zw, sample };
   const ming = zw.a.palaces.find((p) => p.name === '命宮');
@@ -743,7 +756,7 @@ function renderSummary() {
   const now = new Date().getFullYear();
   const curYun = bz.dayun.find((d) => now >= d.startYear && now <= d.endYear);
   const yGZ = yearGZ(now);
-  const yRate = rateGZ(yGZ, bz.fav, bz.unfav, 'year', bz.mz);
+  const yRate = rateFull(bz, yGZ, 'year');
 
   // personality
   const mingNames = mb.stars.map((s) => s.name).join('、') || '無主星';
@@ -793,7 +806,7 @@ function renderSummary() {
   const p6 = `${GU}<b>配偶宮與配偶星：</b>${gongTxt}${dtsLove}`;
 
   // 求財：滴天髓〈何知章〉
-  const invYears = []; for (let y = now; y < now + 6; y++) if (rateGZ(yearGZ(y), bz.fav, bz.unfav, 'year', bz.mz) === 'up') invYears.push(y);
+  const invYears = []; for (let y = now; y < now + 6; y++) if (rateFull(bz, yearGZ(y), 'year') === 'up') invYears.push(y);
   const fuWhy = bz.strong && bz.caiLevel === 'strong' && (nShang >= 1 || nGuan >= 1) ? '身旺財旺，又有食傷生財或官星衛財'
     : bz.strong && bz.caiLevel !== 'strong' && nGuan < 1 && nShang >= 1 ? '身旺財弱無官，但有食傷生財'
     : !bz.strong && nCai >= 3 && nGuan < 1 && nYin < 1 && nBi >= 1 ? '身弱財重，無官印而有比劫分擔'
@@ -862,7 +875,9 @@ function renderSummary() {
   // luck now
   let p5 = GU;
   if (curYun) p5 += `目前走 <b>${curYun.gz}</b> 大運（${curYun.startYear}–${curYun.endYear}，${curYun.god}運），整體${RATE_TXT[curYun.rate]}。`;
+  if (curYun && guanCheck(bz, curYun.gz)) p5 += guanCheck(bz, curYun.gz) + '。';
   p5 += `${now}年為${yGZ}年，流年天干為${tenGod(bz.dm, yGZ[0])}，對你的命局而言${yRate === 'up' ? '五行偏有利，適合推進計畫' : yRate === 'down' ? '五行較不利，宜穩紮穩打、避免冒進' : '影響中性，按部就班即可'}。`;
+  if (guanCheck(bz, yGZ)) p5 += guanCheck(bz, yGZ) + '，工作上反而容易有變動或壓力。';
   if (zw.h) {
     // 大限、流年各以其命宮星曜論吉凶，四化看化入本命哪一宮
     const dp = a.palaces[zw.h.decadal.index]; const yp = a.palaces[zw.h.yearly.index];
@@ -875,7 +890,8 @@ function renderSummary() {
     const toneTxt = (t) => t.tone > 0 ? '吉星或化祿權科較多，整體較順' : t.tone < 0 ? '有化忌、落陷或煞星，整體較辛苦，凡事多留餘地' : '吉凶參半，好壞看自己經營';
     p5 += `</p>
     <p>${ZW}<b>大限：</b>這十年的大限命宮在本命${dp.name}宮的位置，${dT.borrowed ? '無主星，借對宮' : '坐'}${dT.names}，${toneTxt(dT)}。大限${zw.h.decadal.heavenlyStem}干四化：${hua(zw.h.decadal.mutagen)}。</p>
-    <p>${ZW}<b>流年：</b>今年流年命宮在本命${yp.name}宮的位置，${yT.borrowed ? '無主星，借對宮' : '坐'}${yT.names}，${toneTxt(yT)}。流年${zw.h.yearly.heavenlyStem}干四化：${hua(zw.h.yearly.mutagen)}。`;
+    <p>${ZW}<b>流年：</b>今年流年命宮在本命${yp.name}宮的位置，${yT.borrowed ? '無主星，借對宮' : '坐'}${yT.names}，${toneTxt(yT)}。流年${zw.h.yearly.heavenlyStem}干四化：${hua(zw.h.yearly.mutagen)}。${(() => { const fp = a.palaces[(zw.h.yearly.index + 1) % 12]; const ft = palaceTone(fp); return `看上司用流年父母宮，落在本命${fp.name}宮的位置，${ft.borrowed ? '借對宮' : '坐'}${ft.names}，${ft.tone > 0 ? '上司緣較好' : ft.tone < 0 ? '和上司較易有摩擦' : '上司緣平平'}。`; })()}化權、化科只代表做那件事較有利，不代表一定會發生。</p>
+    <p class="small mutedtxt">命理只看得出大方向，例如壓力大小、助力多寡，無法斷定被裁員、換工作這類具體事件。`;
   }
 
 
@@ -949,7 +965,7 @@ function renderBazi() {
       <span class="age">${d.startYear}</span></div>`).join('');
   const years = []; for (let y = now - 1; y <= now + 8; y++) years.push(y);
   const birthY = state.input.solar.getYear();
-  const ln = years.map((y) => { const g = yearGZ(y); const r = rateGZ(g, bz.fav, bz.unfav, 'year', bz.mz);
+  const ln = years.map((y) => { const g = yearGZ(y); const r = rateFull(bz, g, 'year');
     return `<div class="step ${y === now ? 'now' : ''}"><span class="age">${y} · ${y - birthY + 1}歲</span><span class="gz"><span class="el-${STEM_EL[g[0]]}">${g[0]}</span><span class="el-${BRANCH_EL[g[1]]}">${g[1]}</span></span><span class="small">${tenGod(bz.dm, g[0])}</span><span><span class="pill ${r}">${RATE_TXT[r]}</span></span></div>`; }).join('');
   const dmt = DM_TEXT[bz.dm];
   return `
@@ -979,7 +995,7 @@ function renderBazi() {
   </div>
   <div class="card"><h3>十神解析<small>透干計 1.5，藏干主氣計 1、餘氣計 0.5，月令加倍</small></h3><ul class="list">${godRows}</ul></div>
   <div class="card"><h3>大運<small>${bz.yunStart.y}年${bz.yunStart.m}個月${bz.yunStart.d}天後起運，每十年一換</small></h3><div class="yun">${yun}</div></div>
-  <div class="card"><h3>流年<small>依格局喜忌評估，流年重天干</small></h3><div class="yun">${ln}</div></div>`;
+  <div class="card"><h3>流年<small>依格局喜忌評估，流年重天干${bz.ge === "正官格" && !bz.special ? "；正官格另看重官、雜煞、逢合" : ""}</small></h3><div class="yun">${ln}</div></div>`;
 }
 
 const POS = [[4, 1], [3, 1], [2, 1], [1, 1], [1, 2], [1, 3], [1, 4], [2, 4], [3, 4], [4, 4], [4, 3], [4, 2]];
