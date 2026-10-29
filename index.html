@@ -891,7 +891,7 @@ function renderSummary() {
     p5 += `</p>
     <p>${ZW}<b>大限：</b>這十年的大限命宮在本命${dp.name}宮的位置，${dT.borrowed ? '無主星，借對宮' : '坐'}${dT.names}，${toneTxt(dT)}。大限${zw.h.decadal.heavenlyStem}干四化：${hua(zw.h.decadal.mutagen)}。</p>
     <p>${ZW}<b>流年：</b>今年流年命宮在本命${yp.name}宮的位置，${yT.borrowed ? '無主星，借對宮' : '坐'}${yT.names}，${toneTxt(yT)}。流年${zw.h.yearly.heavenlyStem}干四化：${hua(zw.h.yearly.mutagen)}。${(() => { const fp = a.palaces[(zw.h.yearly.index + 1) % 12]; const ft = palaceTone(fp); return `看上司用流年父母宮，落在本命${fp.name}宮的位置，${ft.borrowed ? '借對宮' : '坐'}${ft.names}，${ft.tone > 0 ? '上司緣較好' : ft.tone < 0 ? '和上司較易有摩擦' : '上司緣平平'}。`; })()}化權、化科只代表做那件事較有利，不代表一定會發生。</p>
-    <p class="small mutedtxt">命理只看得出大方向，例如壓力大小、助力多寡，無法斷定被裁員、換工作這類具體事件。`;
+    <p class="small mutedtxt">命理只看得出大方向，例如壓力大小、助力多寡，無法斷定換工作、升遷這類具體事件。`;
   }
 
 
